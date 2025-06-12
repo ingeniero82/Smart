@@ -24,14 +24,15 @@ migrate_working_dir/
 #.vscode/
 
 # Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
 .dart_tool/
+.packages
+.pub/
+build/
 .flutter-plugins
 .flutter-plugins-dependencies
-.pub-cache/
-.pub/
-/build/
+.melos_tool/
+.flutter-*
+generated_plugin_registrant.dart
 
 # Symbolication related
 app.*.symbols
@@ -43,3 +44,12 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Visual Studio Code
+.vscode/
+
+# MacOS
+.DS_Store
+
+# Windows
+Thumbs.db
