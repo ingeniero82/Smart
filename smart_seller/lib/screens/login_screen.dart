@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../services/database_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -13,10 +14,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
-
-  // Credenciales de prueba
-  final String validUsername = 'admin';
-  final String validPassword = '123456';
 
   Future<void> _login() async {
     final username = _usernameController.text.trim();
@@ -37,37 +34,52 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
 
-    // Simular delay de autenticación
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      // Simular delay de autenticación
+      await Future.delayed(const Duration(seconds: 1));
 
-    if (username == validUsername && password == validPassword) {
-      // Login exitoso
-      Get.snackbar(
-        'Éxito',
-        'Bienvenido al sistema Smart Seller',
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-        icon: const Icon(Icons.check_circle, color: Colors.white),
-        duration: const Duration(seconds: 2),
-      );
-      
-      // Navegar al dashboard
-      Get.offAllNamed('/dashboard');
-    } else {
-      // Credenciales incorrectas
+      // Buscar usuario en la base de datos
+      final user = await DatabaseService.findUser(username, password);
+
+      if (user != null) {
+        // Login exitoso
+        Get.snackbar(
+          'Éxito',
+          'Bienvenido ${user.fullName}',
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          icon: const Icon(Icons.check_circle, color: Colors.white),
+          duration: const Duration(seconds: 2),
+        );
+        
+        // Navegar al dashboard
+        Get.offAllNamed('/dashboard');
+      } else {
+        // Credenciales incorrectas
+        Get.snackbar(
+          'Error',
+          'Usuario o contraseña incorrectos',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          icon: const Icon(Icons.error, color: Colors.white),
+          duration: const Duration(seconds: 3),
+        );
+      }
+    } catch (e) {
+      // Error inesperado
       Get.snackbar(
         'Error',
-        'Usuario o contraseña incorrectos',
+        'Ocurrió un error inesperado: $e',
         backgroundColor: Colors.red,
         colorText: Colors.white,
         icon: const Icon(Icons.error, color: Colors.white),
         duration: const Duration(seconds: 3),
       );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
-
-    setState(() {
-      _isLoading = false;
-    });
   }
 
   @override

@@ -3,8 +3,14 @@ import 'package:get/get.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/pos_screen.dart';
+import 'services/database_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Inicializar la base de datos
+  await DatabaseService.initialize();
+  
   runApp(const MyApp());
 }
 
