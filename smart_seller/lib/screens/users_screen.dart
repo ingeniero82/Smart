@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../services/database_service.dart';
 import '../models/user.dart';
 import '../widgets/user_form_dialog.dart';
+import '../widgets/user_edit_dialog.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
@@ -50,6 +51,191 @@ class _UsersScreenState extends State<UsersScreen> {
     // Si se creó un usuario, recargar la lista
     if (result == true) {
       _loadUsers();
+    }
+  }
+
+  Future<void> _openEditUserDialog(User user) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => UserEditDialog(user: user),
+    );
+
+    // Si se editó un usuario, recargar la lista
+    if (result == true) {
+      _loadUsers();
+    }
+  }
+
+  Future<void> _toggleUserStatus(User user) async {
+    // Confirmar acción
+    final confirm = await Get.dialog<bool>(
+      AlertDialog(
+        title: Text('Confirmar acción'),
+        content: Text(
+          user.isActive 
+            ? '¿Estás seguro de que quieres desactivar a ${user.fullName}?'
+            : '¿Estás seguro de que quieres activar a ${user.fullName}?'
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Get.back(result: true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: user.isActive ? Colors.red : Colors.green,
+            ),
+            child: Text(
+              user.isActive ? 'Desactivar' : 'Activar',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final success = await DatabaseService.toggleUserStatus(user.id);
+      
+      if (success) {
+        Get.snackbar(
+          'Éxito',
+          user.isActive 
+            ? 'Usuario ${user.fullName} desactivado correctamente'
+            : 'Usuario ${user.fullName} activado correctamente',
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          icon: Icon(Icons.check_circle, color: Colors.white),
+        );
+        
+        // Recargar la lista
+        _loadUsers();
+      } else {
+        Get.snackbar(
+          'Error',
+          user.username == 'admin' 
+            ? 'No se puede desactivar al administrador principal'
+            : 'No se pudo cambiar el estado del usuario',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Error al cambiar estado: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  Future<void> _deleteUser(User user) async {
+    // No permitir eliminar al admin
+    if (user.username == 'admin') {
+      Get.snackbar(
+        'Error',
+        'No se puede eliminar al administrador principal',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    // Confirmar eliminación con doble confirmación
+    final confirm = await Get.dialog<bool>(
+      AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning, color: Colors.red),
+            SizedBox(width: 8),
+            Text('¡Atención!'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '¿Estás seguro de que quieres eliminar a ${user.fullName}?',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Esta acción NO se puede deshacer.',
+              style: TextStyle(color: Colors.red),
+            ),
+            SizedBox(height: 8),
+            Text('Se eliminará:'),
+            Text('• Usuario: ${user.username}'),
+            Text('• Nombre: ${user.fullName}'),
+            Text('• Rol: ${_getRoleText(user.role)}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Get.back(result: true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: Text(
+              'Eliminar',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final success = await DatabaseService.deleteUser(user.id);
+      
+      if (success) {
+        Get.snackbar(
+          'Éxito',
+          'Usuario ${user.fullName} eliminado correctamente',
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          icon: Icon(Icons.check_circle, color: Colors.white),
+        );
+        
+        // Recargar la lista
+        _loadUsers();
+      } else {
+        Get.snackbar(
+          'Error',
+          'No se pudo eliminar el usuario',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Error al eliminar usuario: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  String _getRoleText(UserRole role) {
+    switch (role) {
+      case UserRole.admin:
+        return 'Administrador';
+      case UserRole.manager:
+        return 'Gerente';
+      case UserRole.cashier:
+        return 'Cajero';
     }
   }
 
@@ -138,22 +324,13 @@ class _UsersScreenState extends State<UsersScreen> {
                         return _UserCard(
                           user: user,
                           onEdit: () {
-                            // TODO: Editar usuario
-                            Get.snackbar(
-                              'Próximamente',
-                              'Función de editar usuario en desarrollo',
-                              backgroundColor: Colors.blue,
-                              colorText: Colors.white,
-                            );
+                            _openEditUserDialog(user);
                           },
                           onToggleStatus: () {
-                            // TODO: Activar/desactivar usuario
-                            Get.snackbar(
-                              'Próximamente',
-                              'Función de activar/desactivar usuario en desarrollo',
-                              backgroundColor: Colors.blue,
-                              colorText: Colors.white,
-                            );
+                            _toggleUserStatus(user);
+                          },
+                          onDelete: () {
+                            _deleteUser(user);
                           },
                         );
                       },
@@ -168,11 +345,13 @@ class _UserCard extends StatelessWidget {
   final User user;
   final VoidCallback onEdit;
   final VoidCallback onToggleStatus;
+  final VoidCallback onDelete;
 
   const _UserCard({
     required this.user,
     required this.onEdit,
     required this.onToggleStatus,
+    required this.onDelete,
     Key? key,
   }) : super(key: key);
 
@@ -308,6 +487,11 @@ class _UserCard extends StatelessWidget {
                   color: user.isActive ? Colors.red : Colors.green,
                 ),
                 tooltip: user.isActive ? 'Desactivar usuario' : 'Activar usuario',
+              ),
+              IconButton(
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete, color: Colors.red),
+                tooltip: 'Eliminar usuario',
               ),
             ],
           ),
