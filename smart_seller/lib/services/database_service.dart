@@ -56,6 +56,15 @@ class DatabaseService {
         .findFirst();
   }
   
+  // Verificar si un usuario existe por username
+  static Future<bool> userExists(String username) async {
+    final user = await isar.users
+        .filter()
+        .usernameEqualTo(username.trim())
+        .findFirst();
+    return user != null;
+  }
+  
   // Obtener todos los usuarios
   static Future<List<User>> getAllUsers() async {
     return await isar.users.where().findAll();

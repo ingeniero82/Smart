@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../services/database_service.dart';
 import '../models/user.dart';
+import '../widgets/user_form_dialog.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
@@ -37,6 +38,18 @@ class _UsersScreenState extends State<UsersScreen> {
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+    }
+  }
+
+  Future<void> _openCreateUserDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => const UserFormDialog(),
+    );
+
+    // Si se creó un usuario, recargar la lista
+    if (result == true) {
+      _loadUsers();
     }
   }
 
@@ -78,15 +91,7 @@ class _UsersScreenState extends State<UsersScreen> {
                 ],
               ),
               ElevatedButton.icon(
-                onPressed: () {
-                  // TODO: Abrir formulario para crear usuario
-                  Get.snackbar(
-                    'Próximamente',
-                    'Función de crear usuario en desarrollo',
-                    backgroundColor: Colors.blue,
-                    colorText: Colors.white,
-                  );
-                },
+                onPressed: _openCreateUserDialog,
                 icon: const Icon(Icons.add, color: Color(0xFF6C47FF)),
                 label: const Text(
                   'Nuevo Usuario',
