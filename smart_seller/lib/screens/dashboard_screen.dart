@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'dashboard_controller.dart';
+import 'pos_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final controller = Get.put(DashboardController());
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8FA), // Fondo general gris claro
       body: Row(
@@ -36,38 +40,46 @@ class DashboardScreen extends StatelessWidget {
                       _SidebarButton(
                         icon: Icons.dashboard,
                         label: 'Dashboard',
-                        selected: true,
-                        onTap: () {},
+                        selected: controller.selectedMenu.value == DashboardMenu.dashboard,
+                        onTap: () => controller.selectMenu(DashboardMenu.dashboard),
                       ),
                       _SidebarButton(
                         icon: Icons.point_of_sale,
                         label: 'Punto de Venta',
-                        onTap: () {},
+                        selected: controller.selectedMenu.value == DashboardMenu.puntoDeVenta,
+                        onTap: () {
+                          Get.toNamed('/pos');
+                        },
                       ),
                       _SidebarButton(
                         icon: Icons.inventory_2,
                         label: 'Inventario',
-                        onTap: () {},
+                        selected: controller.selectedMenu.value == DashboardMenu.inventario,
+                        onTap: () => controller.selectMenu(DashboardMenu.inventario),
                       ),
                       _SidebarButton(
                         icon: Icons.people,
                         label: 'Clientes',
-                        onTap: () {},
+                        selected: controller.selectedMenu.value == DashboardMenu.clientes,
+                        onTap: () => controller.selectMenu(DashboardMenu.clientes),
                       ),
                       _SidebarButton(
                         icon: Icons.bar_chart,
                         label: 'Reportes',
-                        onTap: () {},
+                        selected: controller.selectedMenu.value == DashboardMenu.reportes,
+                        onTap: () => controller.selectMenu(DashboardMenu.reportes),
                       ),
                       _SidebarButton(
                         icon: Icons.settings,
                         label: 'Configuración',
-                        onTap: () {},
+                        selected: controller.selectedMenu.value == DashboardMenu.configuracion,
+                        onTap: () => controller.selectMenu(DashboardMenu.configuracion),
                       ),
                       _SidebarButton(
                         icon: Icons.person,
                         label: 'Usuarios',
-                        onTap: () {},
+                        selected: controller.selectedMenu.value == DashboardMenu.usuarios,
+                        onTap: () => controller.selectMenu(DashboardMenu.usuarios),
                       ),
                     ],
                   ),
@@ -125,148 +137,24 @@ class DashboardScreen extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(32),
               color: const Color(0xFFF6F8FA), // Fondo igual al general
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header azul
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 32),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2196F3), // Azul principal
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: const [
-                        Text(
-                          'Panel de Control',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: 6),
-                        Text(
-                          'Bienvenido de vuelta, gestiona tu supermercado de manera eficiente',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  // Tarjetas de resumen adaptables
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: _SummaryCard(
-                          title: 'VENTAS HOY',
-                          value: '2,450',
-                          subtitle: '+15% vs ayer',
-                          icon: Icons.monetization_on,
-                          color: Color(0xFF4CAF50),
-                          borderColor: Color(0xFF4CAF50),
-                        ),
-                      ),
-                      SizedBox(width: 20),
-                      Expanded(
-                        child: _SummaryCard(
-                          title: 'PRODUCTOS VENDIDOS',
-                          value: '156',
-                          subtitle: '+8% vs ayer',
-                          icon: Icons.inventory_2,
-                          color: Color(0xFFFF9800),
-                          borderColor: Color(0xFFFF9800),
-                        ),
-                      ),
-                      SizedBox(width: 20),
-                      Expanded(
-                        child: _SummaryCard(
-                          title: 'CLIENTES ATENDIDOS',
-                          value: '42',
-                          subtitle: '+22% vs ayer',
-                          icon: Icons.people,
-                          color: Color(0xFFF44336),
-                          borderColor: Color(0xFFF44336),
-                        ),
-                      ),
-                      SizedBox(width: 20),
-                      Expanded(
-                        child: _SummaryCard(
-                          title: 'INGRESOS SEMANALES',
-                          value: '12,850',
-                          subtitle: '+5% vs sem. anterior',
-                          icon: Icons.sticky_note_2,
-                          color: Color(0xFF7C4DFF),
-                          borderColor: Color(0xFF7C4DFF),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 32),
-                  // Acciones Rápidas
-                  const Text(
-                    'Acciones Rápidas',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF22315B),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Center(
-                    child: Wrap(
-                      spacing: 24,
-                      runSpacing: 24,
-                      children: [
-                        _QuickActionCard(
-                          icon: Icons.point_of_sale,
-                          color: Color(0xFF2979FF),
-                          title: 'Nueva Venta',
-                          description: 'Iniciar una nueva transacción de venta y procesar productos',
-                        ),
-                        _QuickActionCard(
-                          icon: Icons.inventory,
-                          color: Color(0xFF7C4DFF),
-                          title: 'Gestionar Inventario',
-                          description: 'Administrar stock, agregar productos y controlar existencias',
-                        ),
-                        _QuickActionCard(
-                          icon: Icons.groups,
-                          color: Color(0xFFFFA000),
-                          title: 'Gestión de Clientes',
-                          description: 'Registrar clientes, consultar historial y programas de fidelización',
-                        ),
-                        _QuickActionCard(
-                          icon: Icons.bar_chart,
-                          color: Color(0xFF00BFA5),
-                          title: 'Ver Reportes',
-                          description: 'Consultar reportes de ventas, estadísticas y análisis del negocio',
-                        ),
-                        _QuickActionCard(
-                          icon: Icons.settings,
-                          color: Color(0xFF616161),
-                          title: 'Configuración',
-                          description: 'Ajustar parámetros del sistema, impuestos y configuraciones generales',
-                        ),
-                        _QuickActionCard(
-                          icon: Icons.person,
-                          color: Color(0xFFD32F2F),
-                          title: 'Gestión de Usuarios',
-                          description: 'Administrar usuarios del sistema, permisos y roles de acceso',
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+              child: Obx(() {
+                switch (controller.selectedMenu.value) {
+                  case DashboardMenu.dashboard:
+                    return _DashboardContent();
+                  case DashboardMenu.puntoDeVenta:
+                    return const PosScreen();
+                  case DashboardMenu.inventario:
+                    return Center(child: Text('Inventario', style: TextStyle(fontSize: 28, color: Colors.grey[700])));
+                  case DashboardMenu.clientes:
+                    return Center(child: Text('Clientes', style: TextStyle(fontSize: 28, color: Colors.grey[700])));
+                  case DashboardMenu.reportes:
+                    return Center(child: Text('Reportes', style: TextStyle(fontSize: 28, color: Colors.grey[700])));
+                  case DashboardMenu.configuracion:
+                    return Center(child: Text('Configuración', style: TextStyle(fontSize: 28, color: Colors.grey[700])));
+                  case DashboardMenu.usuarios:
+                    return Center(child: Text('Usuarios', style: TextStyle(fontSize: 28, color: Colors.grey[700])));
+                }
+              }),
             ),
           ),
         ],
@@ -472,6 +360,155 @@ class _QuickActionCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// Mueve todo el contenido principal del dashboard aquí
+class _DashboardContent extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header azul
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 32),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2196F3), // Azul principal
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: const [
+              Text(
+                'Panel de Control',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 6),
+              Text(
+                'Bienvenido de vuelta, gestiona tu supermercado de manera eficiente',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 32),
+        // Tarjetas de resumen adaptables
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(
+              child: _SummaryCard(
+                title: 'VENTAS HOY',
+                value: '2,450',
+                subtitle: '+15% vs ayer',
+                icon: Icons.monetization_on,
+                color: Color(0xFF4CAF50),
+                borderColor: Color(0xFF4CAF50),
+              ),
+            ),
+            SizedBox(width: 20),
+            Expanded(
+              child: _SummaryCard(
+                title: 'PRODUCTOS VENDIDOS',
+                value: '156',
+                subtitle: '+8% vs ayer',
+                icon: Icons.inventory_2,
+                color: Color(0xFFFF9800),
+                borderColor: Color(0xFFFF9800),
+              ),
+            ),
+            SizedBox(width: 20),
+            Expanded(
+              child: _SummaryCard(
+                title: 'CLIENTES ATENDIDOS',
+                value: '42',
+                subtitle: '+22% vs ayer',
+                icon: Icons.people,
+                color: Color(0xFFF44336),
+                borderColor: Color(0xFFF44336),
+              ),
+            ),
+            SizedBox(width: 20),
+            Expanded(
+              child: _SummaryCard(
+                title: 'INGRESOS SEMANALES',
+                value: '12,850',
+                subtitle: '+5% vs sem. anterior',
+                icon: Icons.sticky_note_2,
+                color: Color(0xFF7C4DFF),
+                borderColor: Color(0xFF7C4DFF),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 32),
+        // Acciones Rápidas
+        const Text(
+          'Acciones Rápidas',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF22315B),
+          ),
+        ),
+        const SizedBox(height: 18),
+        Center(
+          child: Wrap(
+            spacing: 24,
+            runSpacing: 24,
+            children: [
+              _QuickActionCard(
+                icon: Icons.point_of_sale,
+                color: Color(0xFF2979FF),
+                title: 'Nueva Venta',
+                description: 'Iniciar una nueva transacción de venta y procesar productos',
+              ),
+              _QuickActionCard(
+                icon: Icons.inventory,
+                color: Color(0xFF7C4DFF),
+                title: 'Gestionar Inventario',
+                description: 'Administrar stock, agregar productos y controlar existencias',
+              ),
+              _QuickActionCard(
+                icon: Icons.groups,
+                color: Color(0xFFFFA000),
+                title: 'Gestión de Clientes',
+                description: 'Registrar clientes, consultar historial y programas de fidelización',
+              ),
+              _QuickActionCard(
+                icon: Icons.bar_chart,
+                color: Color(0xFF00BFA5),
+                title: 'Ver Reportes',
+                description: 'Consultar reportes de ventas, estadísticas y análisis del negocio',
+              ),
+              _QuickActionCard(
+                icon: Icons.settings,
+                color: Color(0xFF616161),
+                title: 'Configuración',
+                description: 'Ajustar parámetros del sistema, impuestos y configuraciones generales',
+              ),
+              _QuickActionCard(
+                icon: Icons.person,
+                color: Color(0xFFD32F2F),
+                title: 'Gestión de Usuarios',
+                description: 'Administrar usuarios del sistema, permisos y roles de acceso',
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 } 

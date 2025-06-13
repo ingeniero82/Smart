@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/pos_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -10,13 +12,18 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       title: 'Smart Seller',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: const DashboardScreen(),
+      debugShowCheckedModeBanner: false,
+      initialRoute: '/',
+      getPages: [
+        GetPage(name: '/', page: () => const DashboardScreen()),
+        GetPage(name: '/pos', page: () => const PosScreen()),
+      ],
     );
   }
 }
