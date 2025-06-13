@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'dashboard_controller.dart';
 import 'pos_screen.dart';
+import 'users_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -152,7 +153,7 @@ class DashboardScreen extends StatelessWidget {
                   case DashboardMenu.configuracion:
                     return Center(child: Text('Configuración', style: TextStyle(fontSize: 28, color: Colors.grey[700])));
                   case DashboardMenu.usuarios:
-                    return Center(child: Text('Usuarios', style: TextStyle(fontSize: 28, color: Colors.grey[700])));
+                    return const UsersScreen();
                 }
               }),
             ),
