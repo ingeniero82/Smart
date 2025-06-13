@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -11,6 +12,63 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
+
+  // Credenciales de prueba
+  final String validUsername = 'admin';
+  final String validPassword = '123456';
+
+  Future<void> _login() async {
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (username.isEmpty || password.isEmpty) {
+      Get.snackbar(
+        'Error',
+        'Por favor completa todos los campos',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        icon: const Icon(Icons.error, color: Colors.white),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    // Simular delay de autenticación
+    await Future.delayed(const Duration(seconds: 1));
+
+    if (username == validUsername && password == validPassword) {
+      // Login exitoso
+      Get.snackbar(
+        'Éxito',
+        'Bienvenido al sistema Smart Seller',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        icon: const Icon(Icons.check_circle, color: Colors.white),
+        duration: const Duration(seconds: 2),
+      );
+      
+      // Navegar al dashboard
+      Get.offAllNamed('/dashboard');
+    } else {
+      // Credenciales incorrectas
+      Get.snackbar(
+        'Error',
+        'Usuario o contraseña incorrectos',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        icon: const Icon(Icons.error, color: Colors.white),
+        duration: const Duration(seconds: 3),
+      );
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   // Campo contraseña
                   Container(
-                    margin: const EdgeInsets.only(bottom: 16),
+                    margin: const EdgeInsets.only(bottom: 18),
                     decoration: BoxDecoration(
                       color: const Color(0xFFE2E8F0),
                       borderRadius: BorderRadius.circular(8),
@@ -93,7 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       obscureText: _obscurePassword,
                       decoration: InputDecoration(
                         isDense: true,
-                        hintText: 'Contraseña',
+                        hintText: 'contraseña',
                         hintStyle: const TextStyle(
                           color: Color(0xFF9CA3AF),
                           fontSize: 15,
@@ -104,9 +162,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
+                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
                             color: const Color(0xFF22315B),
                           ),
                           onPressed: () {
@@ -123,14 +179,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-                  // Botón
+                  // Botón login
                   SizedBox(
                     width: double.infinity,
                     height: 42,
                     child: ElevatedButton(
-                      onPressed: () {
-                        // Aquí va la lógica de login
-                      },
+                      onPressed: _isLoading ? null : _login,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF22315B),
                         shape: RoundedRectangleBorder(
@@ -138,15 +192,24 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         elevation: 0,
                       ),
-                      child: const Text(
-                        'Iniciar Sesión',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'Iniciar Sesión',
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                     ),
                   ),
                 ],
@@ -165,37 +228,5 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
-  }
-
-  void _handleLogin() {
-    String username = _usernameController.text.trim();
-    String password = _passwordController.text.trim();
-    
-    if (username.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, completa todos los campos'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-    
-    // Aquí puedes agregar tu lógica de autenticación
-    print('Usuario: $username');
-    print('Contraseña: $password');
-    
-    // Ejemplo de navegación después del login exitoso
-    // Navigator.pushReplacement(
-    //   context,
-    //   MaterialPageRoute(builder: (context) => HomeScreen()),
-    // );
-  }
-
-  @override
-  void dispose() {
-    _usernameController.dispose();
-    _passwordController.dispose();
-    super.dispose();
   }
 }

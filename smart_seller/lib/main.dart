@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/pos_screen.dart';
 
@@ -19,9 +20,10 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-      initialRoute: '/',
+      initialRoute: '/login',
       getPages: [
-        GetPage(name: '/', page: () => const DashboardScreen()),
+        GetPage(name: '/login', page: () => const LoginScreen()),
+        GetPage(name: '/dashboard', page: () => const DashboardScreen()),
         GetPage(name: '/pos', page: () => const PosScreen()),
       ],
     );
