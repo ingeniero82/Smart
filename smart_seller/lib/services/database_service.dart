@@ -1,6 +1,7 @@
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/user.dart';
+import '../models/product.dart';
 
 class DatabaseService {
   static late Isar isar;
@@ -10,7 +11,7 @@ class DatabaseService {
     final dir = await getApplicationDocumentsDirectory();
     
     isar = await Isar.open(
-      [UserSchema],
+      [UserSchema, ProductSchema],
       directory: dir.path,
     );
     
@@ -115,5 +116,37 @@ class DatabaseService {
       print('Error al eliminar usuario: $e');
       return false;
     }
+  }
+  
+  // ================== PRODUCTOS ==================
+  static Future<List<Product>> getAllProducts() async {
+    return await isar.products.where().findAll();
+  }
+
+  static Future<void> createProduct(Product product) async {
+    await isar.writeTxn(() async {
+      await isar.products.put(product);
+    });
+  }
+
+  static Future<void> updateProduct(Product product) async {
+    await isar.writeTxn(() async {
+      await isar.products.put(product);
+    });
+  }
+
+  static Future<void> deleteProduct(int id) async {
+    await isar.writeTxn(() async {
+      await isar.products.delete(id);
+    });
+  }
+ 
+  static Future<bool> existsProductCode(String code, {int? excludeId}) async {
+    final query = isar.products.filter().codeEqualTo(code.trim()).and().isActiveEqualTo(true);
+    final result = await query.findAll();
+    if (excludeId != null) {
+      return result.any((p) => p.id != excludeId);
+    }
+    return result.isNotEmpty;
   }
 } 

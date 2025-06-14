@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'dashboard_controller.dart';
 import 'pos_screen.dart';
 import 'users_screen.dart';
+import 'products_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -145,7 +146,7 @@ class DashboardScreen extends StatelessWidget {
                   case DashboardMenu.puntoDeVenta:
                     return const PosScreen();
                   case DashboardMenu.inventario:
-                    return Center(child: Text('Inventario', style: TextStyle(fontSize: 28, color: Colors.grey[700])));
+                    return const ProductsScreen();
                   case DashboardMenu.clientes:
                     return Center(child: Text('Clientes', style: TextStyle(fontSize: 28, color: Colors.grey[700])));
                   case DashboardMenu.reportes:
