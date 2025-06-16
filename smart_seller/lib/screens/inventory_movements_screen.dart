@@ -14,22 +14,28 @@ class InventoryMovementsScreen extends StatefulWidget {
 
 class _InventoryMovementsScreenState extends State<InventoryMovementsScreen> {
   List<InventoryMovement> _movements = [];
+  List<Product> _products = [];
+  List<User> _users = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadMovements();
+    _loadData();
   }
 
-  Future<void> _loadMovements() async {
+  Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
     });
     try {
       final movements = await DatabaseService.getAllInventoryMovements();
+      final products = await DatabaseService.getAllProducts();
+      final users = await DatabaseService.getAllUsers();
       setState(() {
         _movements = movements;
+        _products = products;
+        _users = users;
         _isLoading = false;
       });
     } catch (e) {
@@ -40,11 +46,35 @@ class _InventoryMovementsScreenState extends State<InventoryMovementsScreen> {
     }
   }
 
+  String _productName(int id) {
+    final p = _products.firstWhereOrNull((prod) => prod.id == id);
+    return p?.name ?? 'Producto desconocido';
+  }
+
+  String _userName(int id) {
+    final u = _users.firstWhereOrNull((user) => user.id == id);
+    return u?.fullName ?? 'Usuario desconocido';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Historial de Movimientos de Inventario'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: 'Registrar movimiento',
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => _MovementFormDialog(
+                  products: _products,
+                ),
+              ).then((_) => _loadData());
+            },
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -58,14 +88,14 @@ class _InventoryMovementsScreenState extends State<InventoryMovementsScreen> {
                     final m = _movements[index];
                     return ListTile(
                       leading: Icon(_iconForType(m.type), color: _colorForType(m.type)),
-                      title: Text('Producto ID: ${m.productId}'),
+                      title: Text(_productName(m.productId)),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Tipo: ${m.type.name} | Motivo: ${m.reason.name}'),
                           Text('Cantidad: ${m.quantity}'),
                           Text('Fecha: ${m.date.toString()}'),
-                          Text('Usuario ID: ${m.userId}'),
+                          Text('Usuario: ${_userName(m.userId)}'),
                           if (m.observations != null && m.observations!.isNotEmpty)
                             Text('Obs: ${m.observations!}'),
                         ],
@@ -96,5 +126,102 @@ class _InventoryMovementsScreenState extends State<InventoryMovementsScreen> {
       case MovementType.ajuste:
         return Colors.orange;
     }
+  }
+}
+
+// --- Diálogo para registrar movimiento ---
+class _MovementFormDialog extends StatefulWidget {
+  final List<Product> products;
+  const _MovementFormDialog({required this.products});
+
+  @override
+  State<_MovementFormDialog> createState() => _MovementFormDialogState();
+}
+
+class _MovementFormDialogState extends State<_MovementFormDialog> {
+  final _formKey = GlobalKey<FormState>();
+  Product? _selectedProduct;
+  MovementType _selectedType = MovementType.entrada;
+  MovementReason _selectedReason = MovementReason.compra;
+  final _quantityController = TextEditingController();
+  final _obsController = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      child: Container(
+        width: 400,
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Registrar movimiento', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<Product>(
+                value: _selectedProduct,
+                items: widget.products.map((p) => DropdownMenuItem(value: p, child: Text(p.name))).toList(),
+                onChanged: (p) => setState(() => _selectedProduct = p),
+                decoration: const InputDecoration(labelText: 'Producto', border: OutlineInputBorder()),
+                validator: (v) => v == null ? 'Selecciona un producto' : null,
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<MovementType>(
+                value: _selectedType,
+                items: MovementType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
+                onChanged: (t) => setState(() => _selectedType = t!),
+                decoration: const InputDecoration(labelText: 'Tipo de movimiento', border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<MovementReason>(
+                value: _selectedReason,
+                items: MovementReason.values.map((r) => DropdownMenuItem(value: r, child: Text(r.name))).toList(),
+                onChanged: (r) => setState(() => _selectedReason = r!),
+                decoration: const InputDecoration(labelText: 'Motivo', border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _quantityController,
+                decoration: const InputDecoration(labelText: 'Cantidad', border: OutlineInputBorder()),
+                keyboardType: TextInputType.number,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Ingresa la cantidad';
+                  if (int.tryParse(v) == null) return 'Cantidad inválida';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _obsController,
+                decoration: const InputDecoration(labelText: 'Observaciones (opcional)', border: OutlineInputBorder()),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Cancelar'),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    onPressed: () {
+                      if (_formKey.currentState!.validate()) {
+                        Get.snackbar('Movimiento registrado', 'El movimiento se registraría aquí.', backgroundColor: Colors.green, colorText: Colors.white);
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    child: const Text('Guardar'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 } 
