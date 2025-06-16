@@ -2,6 +2,7 @@ import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/user.dart';
 import '../models/product.dart';
+import '../models/inventory_movement.dart';
 
 class DatabaseService {
   static late Isar isar;
@@ -11,7 +12,7 @@ class DatabaseService {
     final dir = await getApplicationDocumentsDirectory();
     
     isar = await Isar.open(
-      [UserSchema, ProductSchema],
+      [UserSchema, ProductSchema, InventoryMovementSchema],
       directory: dir.path,
     );
     
@@ -148,5 +149,21 @@ class DatabaseService {
       return result.any((p) => p.id != excludeId);
     }
     return result.isNotEmpty;
+  }
+
+  // Guardar un nuevo movimiento de inventario
+  static Future<void> saveInventoryMovement(InventoryMovement movement) async {
+    await isar.writeTxn(() async {
+      await isar.inventoryMovements.put(movement);
+    });
+  }
+
+  // Consultar todos los movimientos de inventario (con filtros opcionales)
+  static Future<List<InventoryMovement>> getAllInventoryMovements({int? productId, MovementType? type, MovementReason? reason}) async {
+    return await isar.inventoryMovements.filter()
+      .optional(productId != null, (q) => q.productIdEqualTo(productId!))
+      .optional(type != null, (q) => q.typeEqualTo(type!))
+      .optional(reason != null, (q) => q.reasonEqualTo(reason!))
+      .findAll();
   }
 } 

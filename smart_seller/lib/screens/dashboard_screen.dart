@@ -83,6 +83,14 @@ class DashboardScreen extends StatelessWidget {
                         selected: controller.selectedMenu.value == DashboardMenu.usuarios,
                         onTap: () => controller.selectMenu(DashboardMenu.usuarios),
                       ),
+                      _SidebarButton(
+                        icon: Icons.history,
+                        label: 'Movimientos',
+                        selected: false,
+                        onTap: () {
+                          Get.toNamed('/movimientos');
+                        },
+                      ),
                     ],
                   ),
                 ),
