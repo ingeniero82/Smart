@@ -91,6 +91,14 @@ class DashboardScreen extends StatelessWidget {
                           Get.toNamed('/movimientos');
                         },
                       ),
+                      _SidebarButton(
+                        icon: Icons.list_alt,
+                        label: 'Historial de Ventas',
+                        selected: false,
+                        onTap: () {
+                          Get.toNamed('/ventas');
+                        },
+                      ),
                     ],
                   ),
                 ),

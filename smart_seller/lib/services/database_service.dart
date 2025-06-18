@@ -3,59 +3,89 @@ import 'package:path_provider/path_provider.dart';
 import '../models/user.dart';
 import '../models/product.dart';
 import '../models/inventory_movement.dart';
+import '../models/sale.dart';
 
 class DatabaseService {
   static late Isar isar;
   
   // Inicializar la base de datos
   static Future<void> initialize() async {
+    print('🚀 Inicializando base de datos...');
     final dir = await getApplicationDocumentsDirectory();
     
     isar = await Isar.open(
-      [UserSchema, ProductSchema, InventoryMovementSchema],
+      [UserSchema, ProductSchema, InventoryMovementSchema, SaleSchema],
       directory: dir.path,
     );
     
-    // Crear usuario admin por defecto si no existe
+    print('✅ Base de datos abierta en: ${dir.path}');
+    
+    // Crear usuario admin por defecto (forzado)
     await _createDefaultUser();
+    
+    // Listar todos los usuarios para depuración
+    await debugListAllUsers();
   }
   
-  // Crear usuario admin por defecto
+  // Crear usuario admin por defecto (forzado)
   static Future<void> _createDefaultUser() async {
-    final existingAdmin = await isar.users
-        .filter()
-        .usernameEqualTo('admin')
-        .findFirst();
-    
-    if (existingAdmin == null) {
-      final adminUser = User()
-        ..username = 'admin'
-        ..password = '123456'
-        ..fullName = 'Administrador'
-        ..role = UserRole.admin
-        ..createdAt = DateTime.now()
-        ..isActive = true;
-      
-      await isar.writeTxn(() async {
-        await isar.users.put(adminUser);
-      });
-      
-      print('✅ Usuario admin creado en la base de datos');
-    } else {
-      print('✅ Usuario admin ya existe en la base de datos');
-    }
+    print('🔧 Forzando creación de usuario admin...');
+    final adminUser = User()
+      ..username = 'admin'
+      ..password = '123456'
+      ..fullName = 'Administrador'
+      ..role = UserRole.admin
+      ..createdAt = DateTime.now()
+      ..isActive = true;
+
+    await isar.writeTxn(() async {
+      // Borra todos los usuarios anteriores
+      await isar.users.clear();
+      // Crea el usuario admin
+      await isar.users.put(adminUser);
+    });
+
+    print('✅ Usuario admin forzado: admin / 123456');
   }
   
   // Buscar usuario por username y password
   static Future<User?> findUser(String username, String password) async {
-    return await isar.users
-        .filter()
-        .usernameEqualTo(username)
-        .and()
-        .passwordEqualTo(password)
-        .and()
-        .isActiveEqualTo(true)
-        .findFirst();
+    print('🔍 Buscando usuario: username="$username", password="$password"');
+    
+    try {
+      final user = await isar.users
+          .filter()
+          .usernameEqualTo(username)
+          .and()
+          .passwordEqualTo(password)
+          .and()
+          .isActiveEqualTo(true)
+          .findFirst();
+      
+      if (user != null) {
+        print('✅ Usuario encontrado: ${user.fullName} (${user.username})');
+      } else {
+        print('❌ Usuario no encontrado o credenciales incorrectas');
+        
+        // Verificar si el usuario existe pero con contraseña diferente
+        final userExists = await isar.users
+            .filter()
+            .usernameEqualTo(username)
+            .findFirst();
+        
+        if (userExists != null) {
+          print('⚠️ Usuario existe pero contraseña incorrecta o usuario inactivo');
+          print('   Usuario activo: ${userExists.isActive}');
+        } else {
+          print('⚠️ Usuario no existe en la base de datos');
+        }
+      }
+      
+      return user;
+    } catch (e) {
+      print('❌ Error en findUser: $e');
+      return null;
+    }
   }
   
   // Verificar si un usuario existe por username
@@ -119,6 +149,29 @@ class DatabaseService {
     }
   }
   
+  // Función temporal para depuración - listar todos los usuarios
+  static Future<void> debugListAllUsers() async {
+    print('🔍 === LISTANDO TODOS LOS USUARIOS ===');
+    try {
+      final users = await isar.users.where().findAll();
+      print('Total de usuarios en la base de datos: ${users.length}');
+      
+      for (final user in users) {
+        print('   ID: ${user.id}');
+        print('   Username: "${user.username}"');
+        print('   Password: "${user.password}"');
+        print('   FullName: "${user.fullName}"');
+        print('   Role: ${user.role}');
+        print('   Activo: ${user.isActive}');
+        print('   Creado: ${user.createdAt}');
+        print('   ---');
+      }
+    } catch (e) {
+      print('❌ Error al listar usuarios: $e');
+    }
+    print('🔍 === FIN LISTA USUARIOS ===');
+  }
+  
   // ================== PRODUCTOS ==================
   static Future<List<Product>> getAllProducts() async {
     return await isar.products.where().findAll();
@@ -165,5 +218,23 @@ class DatabaseService {
       .optional(type != null, (q) => q.typeEqualTo(type!))
       .optional(reason != null, (q) => q.reasonEqualTo(reason!))
       .findAll();
+  }
+
+  // Guardar una venta
+  static Future<void> saveSale(Sale sale) async {
+    await isar.writeTxn(() async {
+      await isar.sales.put(sale);
+    });
+  }
+
+  // Obtener historial de ventas (todas o por fecha)
+  static Future<List<Sale>> getSales({DateTime? date}) async {
+    if (date == null) {
+      return await isar.sales.where().sortByDateDesc().findAll();
+    } else {
+      final start = DateTime(date.year, date.month, date.day);
+      final end = start.add(const Duration(days: 1));
+      return await isar.sales.filter().dateGreaterThan(start, include: true).and().dateLessThan(end).findAll();
+    }
   }
 } 

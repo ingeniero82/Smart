@@ -4,6 +4,7 @@ import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/pos_screen.dart';
 import 'screens/inventory_movements_screen.dart';
+import 'screens/sales_history_screen.dart';
 import 'services/database_service.dart';
 
 void main() async {
@@ -33,6 +34,7 @@ class MyApp extends StatelessWidget {
         GetPage(name: '/dashboard', page: () => const DashboardScreen()),
         GetPage(name: '/pos', page: () => const PosScreen()),
         GetPage(name: '/movimientos', page: () => const InventoryMovementsScreen()),
+        GetPage(name: '/ventas', page: () => const SalesHistoryScreen()),
       ],
     );
   }

@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import '../models/sale.dart';
+import '../services/database_service.dart';
 
 class CartItem {
   final String name;
@@ -37,13 +39,6 @@ class PosController extends GetxController {
         unit: unit,
       ));
     }
-    
-    Get.snackbar(
-      'Producto agregado',
-      '$name agregado al carrito',
-      duration: const Duration(seconds: 1),
-      snackPosition: SnackPosition.BOTTOM,
-    );
   }
   
   // Remover producto del carrito
@@ -88,7 +83,7 @@ class PosController extends GetxController {
   }
   
   // Procesar pago
-  void processPayment() {
+  void processPayment() async {
     if (cartItems.isEmpty) {
       Get.snackbar(
         'Carrito vacío',
@@ -97,30 +92,72 @@ class PosController extends GetxController {
       );
       return;
     }
-    
-    // Aquí iría la lógica de procesamiento de pago
     Get.dialog(
-      AlertDialog(
-        title: const Text('Procesar Pago'),
-        content: Text('Total a pagar: \$${total.toStringAsFixed(2)}'),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Cancelar'),
+      Dialog(
+        child: Container(
+          width: 400,
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                'Procesar Pago',
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Total a pagar:',
+                style: TextStyle(fontSize: 20, color: Colors.grey[700]),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '\$${total.toStringAsFixed(2)}',
+                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xFF4CAF50)),
+              ),
+              const SizedBox(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  TextButton(
+                    onPressed: () => Get.back(),
+                    child: const Text('Cancelar', style: TextStyle(fontSize: 18)),
+                  ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      Get.back(); // Cierra el diálogo primero
+                      // Espera un breve momento para asegurar el cierre visual
+                      await Future.delayed(const Duration(milliseconds: 200));
+                      // Guardar la venta en la base de datos
+                      final sale = Sale()
+                        ..date = DateTime.now()
+                        ..total = total
+                        ..user = 'admin' // Aquí puedes poner el usuario actual
+                        ..items = cartItems.map((item) => SaleItem()
+                          ..name = item.name
+                          ..price = item.price
+                          ..quantity = item.quantity
+                          ..unit = item.unit
+                        ).toList();
+                      await DatabaseService.saveSale(sale);
+                      clearCart();
+                      Get.snackbar(
+                        'Pago procesado',
+                        'Venta completada exitosamente',
+                        snackPosition: SnackPosition.BOTTOM,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                      textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    child: const Text('Confirmar'),
+                  ),
+                ],
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              clearCart();
-              Get.back();
-              Get.snackbar(
-                'Pago procesado',
-                'Venta completada exitosamente',
-                snackPosition: SnackPosition.BOTTOM,
-              );
-            },
-            child: const Text('Confirmar'),
-          ),
-        ],
+        ),
       ),
     );
   }
