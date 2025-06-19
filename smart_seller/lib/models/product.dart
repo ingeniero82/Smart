@@ -9,6 +9,9 @@ class Product {
   @Index(unique: true)
   late String code; // Código de barras único
   
+  @Index(unique: true)
+  late String shortCode; // Código corto único y obligatorio
+  
   late String name; // Nombre del producto
   
   late String description; // Descripción del producto

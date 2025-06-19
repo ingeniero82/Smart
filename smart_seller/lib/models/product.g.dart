@@ -83,18 +83,23 @@ const ProductSchema = CollectionSchema(
       name: r'profitMargin',
       type: IsarType.double,
     ),
-    r'stock': PropertySchema(
+    r'shortCode': PropertySchema(
       id: 13,
+      name: r'shortCode',
+      type: IsarType.string,
+    ),
+    r'stock': PropertySchema(
+      id: 14,
       name: r'stock',
       type: IsarType.long,
     ),
     r'unit': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'unit',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -113,6 +118,19 @@ const ProductSchema = CollectionSchema(
       properties: [
         IndexPropertySchema(
           name: r'code',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
+    r'shortCode': IndexSchema(
+      id: 90601698520064648,
+      name: r'shortCode',
+      unique: true,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'shortCode',
           type: IndexType.hash,
           caseSensitive: true,
         )
@@ -142,6 +160,7 @@ int _productEstimateSize(
     }
   }
   bytesCount += 3 + object.name.length * 3;
+  bytesCount += 3 + object.shortCode.length * 3;
   bytesCount += 3 + object.unit.length * 3;
   return bytesCount;
 }
@@ -165,9 +184,10 @@ void _productSerialize(
   writer.writeDouble(offsets[10], object.price);
   writer.writeDouble(offsets[11], object.profit);
   writer.writeDouble(offsets[12], object.profitMargin);
-  writer.writeLong(offsets[13], object.stock);
-  writer.writeString(offsets[14], object.unit);
-  writer.writeDateTime(offsets[15], object.updatedAt);
+  writer.writeString(offsets[13], object.shortCode);
+  writer.writeLong(offsets[14], object.stock);
+  writer.writeString(offsets[15], object.unit);
+  writer.writeDateTime(offsets[16], object.updatedAt);
 }
 
 Product _productDeserialize(
@@ -190,9 +210,10 @@ Product _productDeserialize(
   object.minStock = reader.readLong(offsets[8]);
   object.name = reader.readString(offsets[9]);
   object.price = reader.readDouble(offsets[10]);
-  object.stock = reader.readLong(offsets[13]);
-  object.unit = reader.readString(offsets[14]);
-  object.updatedAt = reader.readDateTime(offsets[15]);
+  object.shortCode = reader.readString(offsets[13]);
+  object.stock = reader.readLong(offsets[14]);
+  object.unit = reader.readString(offsets[15]);
+  object.updatedAt = reader.readDateTime(offsets[16]);
   return object;
 }
 
@@ -231,10 +252,12 @@ P _productDeserializeProp<P>(
     case 12:
       return (reader.readDouble(offset)) as P;
     case 13:
-      return (reader.readLong(offset)) as P;
-    case 14:
       return (reader.readString(offset)) as P;
+    case 14:
+      return (reader.readLong(offset)) as P;
     case 15:
+      return (reader.readString(offset)) as P;
+    case 16:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -327,6 +350,59 @@ extension ProductByIndex on IsarCollection<Product> {
 
   List<Id> putAllByCodeSync(List<Product> objects, {bool saveLinks = true}) {
     return putAllByIndexSync(r'code', objects, saveLinks: saveLinks);
+  }
+
+  Future<Product?> getByShortCode(String shortCode) {
+    return getByIndex(r'shortCode', [shortCode]);
+  }
+
+  Product? getByShortCodeSync(String shortCode) {
+    return getByIndexSync(r'shortCode', [shortCode]);
+  }
+
+  Future<bool> deleteByShortCode(String shortCode) {
+    return deleteByIndex(r'shortCode', [shortCode]);
+  }
+
+  bool deleteByShortCodeSync(String shortCode) {
+    return deleteByIndexSync(r'shortCode', [shortCode]);
+  }
+
+  Future<List<Product?>> getAllByShortCode(List<String> shortCodeValues) {
+    final values = shortCodeValues.map((e) => [e]).toList();
+    return getAllByIndex(r'shortCode', values);
+  }
+
+  List<Product?> getAllByShortCodeSync(List<String> shortCodeValues) {
+    final values = shortCodeValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'shortCode', values);
+  }
+
+  Future<int> deleteAllByShortCode(List<String> shortCodeValues) {
+    final values = shortCodeValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'shortCode', values);
+  }
+
+  int deleteAllByShortCodeSync(List<String> shortCodeValues) {
+    final values = shortCodeValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'shortCode', values);
+  }
+
+  Future<Id> putByShortCode(Product object) {
+    return putByIndex(r'shortCode', object);
+  }
+
+  Id putByShortCodeSync(Product object, {bool saveLinks = true}) {
+    return putByIndexSync(r'shortCode', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByShortCode(List<Product> objects) {
+    return putAllByIndex(r'shortCode', objects);
+  }
+
+  List<Id> putAllByShortCodeSync(List<Product> objects,
+      {bool saveLinks = true}) {
+    return putAllByIndexSync(r'shortCode', objects, saveLinks: saveLinks);
   }
 }
 
@@ -442,6 +518,51 @@ extension ProductQueryWhere on QueryBuilder<Product, Product, QWhereClause> {
               indexName: r'code',
               lower: [],
               upper: [code],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterWhereClause> shortCodeEqualTo(
+      String shortCode) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'shortCode',
+        value: [shortCode],
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterWhereClause> shortCodeNotEqualTo(
+      String shortCode) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'shortCode',
+              lower: [],
+              upper: [shortCode],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'shortCode',
+              lower: [shortCode],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'shortCode',
+              lower: [shortCode],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'shortCode',
+              lower: [],
+              upper: [shortCode],
               includeUpper: false,
             ));
       }
@@ -1467,6 +1588,136 @@ extension ProductQueryFilter
     });
   }
 
+  QueryBuilder<Product, Product, QAfterFilterCondition> shortCodeEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'shortCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> shortCodeGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'shortCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> shortCodeLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'shortCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> shortCodeBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'shortCode',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> shortCodeStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'shortCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> shortCodeEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'shortCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> shortCodeContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'shortCode',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> shortCodeMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'shortCode',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> shortCodeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'shortCode',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> shortCodeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'shortCode',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<Product, Product, QAfterFilterCondition> stockEqualTo(
       int value) {
     return QueryBuilder.apply(this, (query) {
@@ -1867,6 +2118,18 @@ extension ProductQuerySortBy on QueryBuilder<Product, Product, QSortBy> {
     });
   }
 
+  QueryBuilder<Product, Product, QAfterSortBy> sortByShortCode() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'shortCode', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> sortByShortCodeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'shortCode', Sort.desc);
+    });
+  }
+
   QueryBuilder<Product, Product, QAfterSortBy> sortByStock() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'stock', Sort.asc);
@@ -2074,6 +2337,18 @@ extension ProductQuerySortThenBy
     });
   }
 
+  QueryBuilder<Product, Product, QAfterSortBy> thenByShortCode() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'shortCode', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> thenByShortCodeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'shortCode', Sort.desc);
+    });
+  }
+
   QueryBuilder<Product, Product, QAfterSortBy> thenByStock() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'stock', Sort.asc);
@@ -2195,6 +2470,13 @@ extension ProductQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Product, Product, QDistinct> distinctByShortCode(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'shortCode', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Product, Product, QDistinct> distinctByStock() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'stock');
@@ -2298,6 +2580,12 @@ extension ProductQueryProperty
   QueryBuilder<Product, double, QQueryOperations> profitMarginProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'profitMargin');
+    });
+  }
+
+  QueryBuilder<Product, String, QQueryOperations> shortCodeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'shortCode');
     });
   }
 

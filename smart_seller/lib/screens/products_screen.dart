@@ -269,6 +269,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                             ),
                             columns: const [
                               DataColumn(label: Text('Código', style: TextStyle(fontWeight: FontWeight.bold))),
+                              DataColumn(label: Text('Código corto', style: TextStyle(fontWeight: FontWeight.bold))),
                               DataColumn(label: Text('Nombre', style: TextStyle(fontWeight: FontWeight.bold))),
                               DataColumn(label: Text('Categoría', style: TextStyle(fontWeight: FontWeight.bold))),
                               DataColumn(label: Text('Precio', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -281,6 +282,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                               return DataRow(
                                 cells: [
                                   DataCell(Text(product.code)),
+                                  DataCell(Text(product.shortCode)),
                                   DataCell(
                                     Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -401,6 +403,7 @@ class _ProductFormDialog extends StatefulWidget {
 class _ProductFormDialogState extends State<_ProductFormDialog> {
   final _formKey = GlobalKey<FormState>();
   final _codeController = TextEditingController();
+  final _shortCodeController = TextEditingController();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
@@ -418,6 +421,7 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
     super.initState();
     if (widget.product != null) {
       _codeController.text = widget.product!.code;
+      _shortCodeController.text = widget.product!.shortCode;
       _nameController.text = widget.product!.name;
       _descriptionController.text = widget.product!.description;
       _priceController.text = widget.product!.price.toString();
@@ -439,6 +443,7 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
 
     try {
       final code = _codeController.text.trim();
+      final shortCode = _shortCodeController.text.trim();
       final excludeId = widget.product?.id;
 
       // Validar código de barras único
@@ -457,8 +462,25 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
         return;
       }
 
+      // Validar código corto único
+      final existsShort = await DatabaseService.getAllProducts();
+      if (existsShort.any((p) => p.shortCode == shortCode && p.id != excludeId)) {
+        setState(() {
+          _isLoading = false;
+        });
+        Get.snackbar(
+          'Error',
+          'Ya existe un producto con ese código corto.',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          duration: Duration(seconds: 3),
+        );
+        return;
+      }
+
       final product = Product()
         ..code = code
+        ..shortCode = shortCode
         ..name = _nameController.text.trim()
         ..description = _descriptionController.text.trim()
         ..price = double.parse(_priceController.text)
@@ -499,6 +521,7 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
               Get.back(); // Cierra el diálogo de confirmación
               _formKey.currentState?.reset();
               _codeController.clear();
+              _shortCodeController.clear();
               _nameController.clear();
               _descriptionController.clear();
               _priceController.clear();
@@ -567,7 +590,7 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
               ),
               const SizedBox(height: 24),
               
-              // Primera fila: Código y Nombre
+              // Primera fila: Código de barras y Código corto
               Row(
                 children: [
                   Expanded(
@@ -587,22 +610,39 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    flex: 2,
                     child: TextFormField(
-                      controller: _nameController,
+                      controller: _shortCodeController,
                       decoration: const InputDecoration(
-                        labelText: 'Nombre del producto',
+                        labelText: 'Código corto',
                         border: OutlineInputBorder(),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'El nombre es requerido';
+                          return 'El código corto es requerido';
+                        }
+                        if (value.trim().length < 2) {
+                          return 'Debe tener al menos 2 caracteres';
                         }
                         return null;
                       },
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+              // Segunda fila: Nombre del producto
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre del producto',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'El nombre es requerido';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               
@@ -687,7 +727,7 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
               ),
               const SizedBox(height: 16),
               
-              // Tercera fila: Stock, Stock mínimo, Categoría
+              // Tercera fila: Stock y Stock mínimo
               Row(
                 children: [
                   Expanded(
@@ -729,28 +769,27 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
                       },
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: DropdownButtonFormField<ProductCategory>(
-                      value: _selectedCategory,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedCategory = value!;
-                        });
-                      },
-                      decoration: const InputDecoration(
-                        labelText: 'Categoría',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: ProductCategory.values.map((category) => 
-                        DropdownMenuItem<ProductCategory>(
-                          value: category,
-                          child: Text(_getCategoryName(category)),
-                        ),
-                      ).toList(),
-                    ),
-                  ),
                 ],
+              ),
+              const SizedBox(height: 16),
+              // Fila aparte para Categoría
+              DropdownButtonFormField<ProductCategory>(
+                value: _selectedCategory,
+                onChanged: (value) {
+                  setState(() {
+                    _selectedCategory = value!;
+                  });
+                },
+                decoration: const InputDecoration(
+                  labelText: 'Categoría',
+                  border: OutlineInputBorder(),
+                ),
+                items: ProductCategory.values.map((category) => 
+                  DropdownMenuItem<ProductCategory>(
+                    value: category,
+                    child: Text(_getCategoryName(category)),
+                  ),
+                ).toList(),
               ),
               const SizedBox(height: 16),
               

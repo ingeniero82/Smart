@@ -1,9 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'pos_controller.dart';
+import '../models/product.dart';
+import '../services/database_service.dart';
 
-class PosScreen extends StatelessWidget {
+class PosScreen extends StatefulWidget {
   const PosScreen({super.key});
+
+  @override
+  State<PosScreen> createState() => _PosScreenState();
+}
+
+class _PosScreenState extends State<PosScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  List<Product> _products = [];
+  List<Product> _filteredProducts = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    setState(() => _isLoading = true);
+    final products = await DatabaseService.getAllProducts();
+    setState(() {
+      _products = products;
+      _filteredProducts = products;
+      _isLoading = false;
+    });
+  }
+
+  void _filterProducts() {
+    setState(() {
+      final query = _searchController.text.toLowerCase();
+      _filteredProducts = _products.where((product) {
+        return product.name.toLowerCase().contains(query) ||
+               product.code.toLowerCase().contains(query) ||
+               product.shortCode.toLowerCase().contains(query);
+      }).toList();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,8 +102,10 @@ class PosScreen extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: TextField(
+                            controller: _searchController,
+                            onChanged: (_) => _filterProducts(),
                             decoration: InputDecoration(
-                              hintText: 'Buscar producto...',
+                              hintText: 'Buscar por nombre, código o código corto...',
                               prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
                               filled: true,
                               fillColor: const Color(0xFFF6F8FA),
@@ -200,37 +241,42 @@ class PosScreen extends StatelessWidget {
                         const SizedBox(height: 18),
                         // Cuadrícula de productos
                         Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            color: Colors.transparent,
-                            child: GridView.builder(
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 4,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 16,
-                                childAspectRatio: 0.8,
-                              ),
-                              itemCount: _sampleProducts.length,
-                              itemBuilder: (context, index) {
-                                final product = _sampleProducts[index];
-                                return _ProductCard(
-                                  name: product['name'],
-                                  price: product['price'],
-                                  unit: product['unit'],
-                                  color: product['color'],
-                                  icon: product['icon'],
-                                  onTap: () {
-                                    // Agregar al carrito usando el controlador
-                                    posController.addToCart(
-                                      product['name'],
-                                      double.parse(product['price']),
-                                      product['unit'],
-                                    );
-                                  },
-                                );
-                              },
-                            ),
-                          ),
+                          child: _isLoading
+                              ? const Center(child: CircularProgressIndicator())
+                              : _filteredProducts.isEmpty
+                                  ? const Center(child: Text('No hay productos para mostrar.'))
+                                  : Container(
+                                      padding: const EdgeInsets.all(16),
+                                      color: Colors.transparent,
+                                      child: GridView.builder(
+                                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: 4,
+                                          crossAxisSpacing: 16,
+                                          mainAxisSpacing: 16,
+                                          childAspectRatio: 0.8,
+                                        ),
+                                        itemCount: _filteredProducts.length,
+                                        itemBuilder: (context, index) {
+                                          final product = _filteredProducts[index];
+                                          return _ProductCard(
+                                            name: product.name,
+                                            price: product.price.toStringAsFixed(2),
+                                            unit: product.unit,
+                                            shortCode: product.shortCode,
+                                            color: Colors.blue,
+                                            icon: Icons.shopping_bag,
+                                            onTap: () {
+                                              final posController = Get.find<PosController>();
+                                              posController.addToCart(
+                                                product.name,
+                                                product.price,
+                                                product.unit,
+                                              );
+                                            },
+                                          );
+                                        },
+                                      ),
+                                    ),
                         ),
                       ],
                     ),
@@ -392,71 +438,12 @@ class PosScreen extends StatelessWidget {
   }
 }
 
-// Productos de ejemplo
-final List<Map<String, dynamic>> _sampleProducts = [
-  {
-    'name': 'Manzanas Rojas',
-    'price': '2.50',
-    'unit': 'kg',
-    'color': Color(0xFFE53935),
-    'icon': Icons.apple,
-  },
-  {
-    'name': 'Leche Entera',
-    'price': '3.20',
-    'unit': 'litro',
-    'color': Color(0xFF29B6F6),
-    'icon': Icons.local_drink,
-  },
-  {
-    'name': 'Pan Integral',
-    'price': '1.80',
-    'unit': 'unidad',
-    'color': Color(0xFFFFB300),
-    'icon': Icons.bakery_dining,
-  },
-  {
-    'name': 'Pollo Fresco',
-    'price': '8.50',
-    'unit': 'kg',
-    'color': Color(0xFF8D6E63),
-    'icon': Icons.set_meal,
-  },
-  {
-    'name': 'Coca Cola',
-    'price': '1.50',
-    'unit': 'botella',
-    'color': Color(0xFF43A047),
-    'icon': Icons.local_bar,
-  },
-  {
-    'name': 'Arroz Blanco',
-    'price': '2.80',
-    'unit': 'kg',
-    'color': Color(0xFF7C4DFF),
-    'icon': Icons.grain,
-  },
-  {
-    'name': 'Yogurt Natural',
-    'price': '2.20',
-    'unit': 'unidad',
-    'color': Color(0xFF29B6F6),
-    'icon': Icons.local_drink,
-  },
-  {
-    'name': 'Plátanos',
-    'price': '1.20',
-    'unit': 'kg',
-    'color': Color(0xFFFFB300),
-    'icon': Icons.apple,
-  },
-];
-
 // Widget para las tarjetas de productos
 class _ProductCard extends StatelessWidget {
   final String name;
   final String price;
   final String unit;
+  final String shortCode;
   final Color color;
   final IconData icon;
   final VoidCallback onTap;
@@ -465,6 +452,7 @@ class _ProductCard extends StatelessWidget {
     required this.name,
     required this.price,
     required this.unit,
+    required this.shortCode,
     required this.color,
     required this.icon,
     required this.onTap,
@@ -473,54 +461,34 @@ class _ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      elevation: 2,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: color, size: 32),
-              ),
+              Icon(icon, size: 40, color: color),
               const SizedBox(height: 12),
               Text(
                 name,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF22315B),
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Text(
-                '\$${price}',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
+                shortCode,
+                style: const TextStyle(fontSize: 13, color: Colors.grey),
               ),
+              const SizedBox(height: 4),
               Text(
-                'por $unit',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF7B809A),
-                ),
+                '\$24$price',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.green),
               ),
+              Text('por $unit', style: const TextStyle(fontSize: 12)),
             ],
           ),
         ),
