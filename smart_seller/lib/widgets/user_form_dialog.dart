@@ -29,7 +29,9 @@ class _UserFormDialogState extends State<UserFormDialog> {
   }
 
   Future<void> _createUser() async {
+    print('Intentando crear usuario...');
     if (!_formKey.currentState!.validate()) {
+      print('Validación fallida');
       return;
     }
 
@@ -39,10 +41,10 @@ class _UserFormDialogState extends State<UserFormDialog> {
 
     try {
       final username = _usernameController.text.trim();
-      
+      print('Verificando si existe el usuario: $username');
       // Verificar si el usuario ya existe
       final userExists = await DatabaseService.userExists(username);
-      
+      print('¿Usuario existe?: $userExists');
       if (userExists) {
         Get.snackbar(
           'Error',
@@ -65,10 +67,12 @@ class _UserFormDialogState extends State<UserFormDialog> {
         ..createdAt = DateTime.now()
         ..isActive = true;
 
+      print('Guardando usuario en la base de datos...');
       // Guardar en la base de datos
       await DatabaseService.isar.writeTxn(() async {
         await DatabaseService.isar.users.put(newUser);
       });
+      print('Usuario guardado correctamente');
 
       Get.snackbar(
         'Éxito',
@@ -77,17 +81,23 @@ class _UserFormDialogState extends State<UserFormDialog> {
         colorText: Colors.white,
         icon: const Icon(Icons.check_circle, color: Colors.white),
       );
+      await Future.delayed(const Duration(milliseconds: 400));
+      print('Intentando cerrar con Navigator...');
+      Navigator.of(context, rootNavigator: true).pop(true);
+      print('¿Se cerró el diálogo?');
 
-      // Cerrar diálogo y retornar true para indicar que se creó el usuario
-      Get.back(result: true);
-
-    } catch (e) {
+    } catch (e, st) {
+      print('Error al crear usuario: $e');
+      print(st);
       Get.snackbar(
         'Error',
         'Error al crear usuario: $e',
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+      setState(() {
+        _isLoading = false;
+      });
     } finally {
       setState(() {
         _isLoading = false;
