@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/user.dart';
 import '../models/permissions.dart';
-import 'database_service.dart';
+import '../services/database_service.dart';
+import '../services/permissions_service.dart';
 
 class AuthService extends GetxService {
   static AuthService get to => Get.find();
@@ -76,22 +77,28 @@ class AuthService extends GetxService {
     }
   }
   
-  // Verificar permisos del usuario actual
+  // Verificar permisos del usuario actual usando el servicio
   bool hasPermission(Permission permission) {
     if (_currentUser.value == null) return false;
-    return RolePermissions.hasPermission(_currentUser.value!.role, permission);
+    
+    final permissionsService = Get.find<PermissionsService>();
+    return permissionsService.hasPermission(_currentUser.value!.role, permission);
   }
   
-  // Verificar si puede acceder a una sección específica
+  // Verificar si puede acceder a una sección específica usando el servicio
   bool canAccessSection(String section) {
     if (_currentUser.value == null) return false;
-    return RolePermissions.canAccessSection(_currentUser.value!.role, section);
+    
+    final permissionsService = Get.find<PermissionsService>();
+    return permissionsService.canAccessSection(_currentUser.value!.role, section);
   }
   
-  // Obtener todos los permisos del usuario actual
+  // Obtener todos los permisos del usuario actual usando el servicio
   Set<Permission> getCurrentUserPermissions() {
     if (_currentUser.value == null) return {};
-    return RolePermissions.getPermissions(_currentUser.value!.role);
+    
+    final permissionsService = Get.find<PermissionsService>();
+    return permissionsService.getRolePermissions(_currentUser.value!.role);
   }
   
   // Verificar permisos del usuario (método legacy para compatibilidad)

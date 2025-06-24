@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/permissions.dart';
 import '../models/user.dart';
+import '../services/permissions_service.dart';
 
 class PermissionsController extends GetxController {
   // Permisos editables por rol
@@ -17,8 +18,9 @@ class PermissionsController extends GetxController {
   }
   
   void _loadPermissions() {
-    // Cargar los permisos actuales
-    editablePermissions.value = Map.from(RolePermissions.permissions);
+    // Cargar los permisos actuales del servicio
+    final permissionsService = Get.find<PermissionsService>();
+    editablePermissions.value = Map.from(permissionsService.currentPermissions);
   }
   
   // Verificar si un rol tiene un permiso específico
@@ -45,22 +47,26 @@ class PermissionsController extends GetxController {
     isLoading.value = true;
     
     try {
-      // Simular guardado (en una implementación real, esto se guardaría en la base de datos)
+      // Simular delay de guardado
       await Future.delayed(const Duration(seconds: 1));
       
-      // Actualizar los permisos estáticos
-      RolePermissions.permissions.clear();
-      RolePermissions.permissions.addAll(editablePermissions);
+      // Guardar usando el servicio de permisos
+      final permissionsService = Get.find<PermissionsService>();
+      final success = await permissionsService.saveAllPermissions(editablePermissions);
       
-      Get.snackbar(
-        'Éxito',
-        'Permisos guardados correctamente',
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-        icon: const Icon(Icons.check_circle, color: Colors.white),
-      );
+      if (success) {
+        Get.snackbar(
+          'Éxito',
+          'Permisos guardados correctamente',
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          icon: const Icon(Icons.check_circle, color: Colors.white),
+        );
+      } else {
+        throw Exception('Error al guardar permisos');
+      }
       
-      return true;
+      return success;
     } catch (e) {
       Get.snackbar(
         'Error',
@@ -98,7 +104,10 @@ class PermissionsController extends GetxController {
           ElevatedButton(
             onPressed: () {
               Get.back();
-              _loadPermissions(); // Recargar permisos originales
+              // Restaurar usando el servicio
+              final permissionsService = Get.find<PermissionsService>();
+              permissionsService.restoreDefaultPermissions();
+              _loadPermissions(); // Recargar en el controlador
               Get.snackbar(
                 'Restaurado',
                 'Permisos restaurados a valores por defecto',

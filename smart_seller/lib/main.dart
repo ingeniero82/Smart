@@ -7,6 +7,7 @@ import 'screens/inventory_movements_screen.dart';
 import 'screens/sales_history_screen.dart';
 import 'services/database_service.dart';
 import 'services/auth_service.dart';
+import 'services/permissions_service.dart';
 import 'middleware/auth_middleware.dart';
 
 void main() async {
@@ -15,8 +16,9 @@ void main() async {
   // Inicializar la base de datos
   await DatabaseService.initialize();
   
-  // Inicializar el servicio de autenticación
+  // Inicializar servicios
   Get.put(AuthService());
+  Get.put(PermissionsService());
   
   runApp(const MyApp());
 }
