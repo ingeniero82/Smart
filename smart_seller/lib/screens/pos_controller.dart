@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import '../models/sale.dart';
 import '../services/database_service.dart';
+import '../services/auth_service.dart';
 
 class CartItem {
   final String name;
@@ -132,7 +133,7 @@ class PosController extends GetxController {
                       final sale = Sale()
                         ..date = DateTime.now()
                         ..total = total
-                        ..user = 'admin' // Aquí puedes poner el usuario actual
+                        ..user = AuthService.to.currentUser?.username ?? 'usuario'
                         ..items = cartItems.map((item) => SaleItem()
                           ..name = item.name
                           ..price = item.price

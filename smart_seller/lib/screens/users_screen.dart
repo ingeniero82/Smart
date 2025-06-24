@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../services/database_service.dart';
+import '../services/auth_service.dart';
 import '../models/user.dart';
 import '../widgets/user_form_dialog.dart';
 import '../widgets/user_edit_dialog.dart';
@@ -19,7 +20,24 @@ class _UsersScreenState extends State<UsersScreen> {
   @override
   void initState() {
     super.initState();
+    _checkPermissions();
     _loadUsers();
+  }
+
+  void _checkPermissions() {
+    // Verificar si el usuario tiene permisos de administrador
+    if (!AuthService.to.hasPermission(UserRole.admin)) {
+      Get.snackbar(
+        'Acceso Denegado',
+        'No tienes permisos para acceder a la gestión de usuarios',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        icon: const Icon(Icons.error, color: Colors.white),
+        duration: const Duration(seconds: 3),
+      );
+      // Redirigir al dashboard
+      Get.offAllNamed('/dashboard');
+    }
   }
 
   Future<void> _loadUsers() async {

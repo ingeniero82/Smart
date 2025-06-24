@@ -4,6 +4,7 @@ import 'dashboard_controller.dart';
 import 'pos_screen.dart';
 import 'users_screen.dart';
 import 'products_screen.dart';
+import '../services/auth_service.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -11,6 +12,8 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(DashboardController());
+    final authService = Get.put(AuthService());
+    
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8FA), // Fondo general gris claro
       body: Row(
@@ -102,7 +105,7 @@ class DashboardScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                // Sección de usuario
+                // Sección de usuario con información dinámica y botón de logout
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Container(
@@ -111,37 +114,64 @@ class DashboardScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(14),
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                    child: Row(
+                    child: Column(
                       children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.25),
-                            shape: BoxShape.circle,
-                          ),
-                          padding: const EdgeInsets.all(8),
-                          child: const Icon(Icons.person, color: Colors.white, size: 28),
-                        ),
-                        const SizedBox(width: 14),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              'Cajero Principal',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
+                        Row(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.25),
+                                shape: BoxShape.circle,
                               ),
+                              padding: const EdgeInsets.all(8),
+                              child: const Icon(Icons.person, color: Colors.white, size: 28),
                             ),
-                            SizedBox(height: 2),
-                            Text(
-                              'Administrador',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 13,
-                              ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Obx(() => Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    authService.currentUserName,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    authService.currentUserRole,
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 13,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              )),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 12),
+                        // Botón de logout
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () => _showLogoutDialog(),
+                            icon: const Icon(Icons.logout, size: 18),
+                            label: const Text('Cerrar Sesión'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red.withOpacity(0.8),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              elevation: 0,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -174,6 +204,42 @@ class DashboardScreen extends StatelessWidget {
                 }
               }),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Diálogo de confirmación para logout
+  void _showLogoutDialog() {
+    Get.dialog(
+      AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.logout, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Cerrar Sesión'),
+          ],
+        ),
+        content: const Text(
+          '¿Estás seguro de que quieres cerrar sesión?',
+          style: TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Get.back();
+              AuthService.to.logout();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Cerrar Sesión'),
           ),
         ],
       ),

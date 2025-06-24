@@ -6,12 +6,17 @@ import 'screens/pos_screen.dart';
 import 'screens/inventory_movements_screen.dart';
 import 'screens/sales_history_screen.dart';
 import 'services/database_service.dart';
+import 'services/auth_service.dart';
+import 'middleware/auth_middleware.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Inicializar la base de datos
   await DatabaseService.initialize();
+  
+  // Inicializar el servicio de autenticación
+  Get.put(AuthService());
   
   runApp(const MyApp());
 }
@@ -30,11 +35,31 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       initialRoute: '/login',
       getPages: [
-        GetPage(name: '/login', page: () => const LoginScreen()),
-        GetPage(name: '/dashboard', page: () => const DashboardScreen()),
-        GetPage(name: '/pos', page: () => const PosScreen()),
-        GetPage(name: '/movimientos', page: () => const InventoryMovementsScreen()),
-        GetPage(name: '/ventas', page: () => const SalesHistoryScreen()),
+        GetPage(
+          name: '/login', 
+          page: () => const LoginScreen(),
+          middlewares: [GuestMiddleware()], // Solo usuarios no autenticados
+        ),
+        GetPage(
+          name: '/dashboard', 
+          page: () => const DashboardScreen(),
+          middlewares: [AuthMiddleware()], // Solo usuarios autenticados
+        ),
+        GetPage(
+          name: '/pos', 
+          page: () => const PosScreen(),
+          middlewares: [AuthMiddleware()], // Solo usuarios autenticados
+        ),
+        GetPage(
+          name: '/movimientos', 
+          page: () => const InventoryMovementsScreen(),
+          middlewares: [AuthMiddleware()], // Solo usuarios autenticados
+        ),
+        GetPage(
+          name: '/ventas', 
+          page: () => const SalesHistoryScreen(),
+          middlewares: [AuthMiddleware()], // Solo usuarios autenticados
+        ),
       ],
     );
   }

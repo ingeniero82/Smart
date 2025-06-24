@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../services/database_service.dart';
+import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -38,14 +38,15 @@ class _LoginScreenState extends State<LoginScreen> {
       // Simular delay de autenticación
       await Future.delayed(const Duration(seconds: 1));
 
-      // Buscar usuario en la base de datos
-      final user = await DatabaseService.findUser(username, password);
+      // Usar el AuthService para hacer login
+      final success = await AuthService.to.login(username, password);
 
-      if (user != null) {
+      if (success) {
         // Login exitoso
+        final user = AuthService.to.currentUser;
         Get.snackbar(
           'Éxito',
-          'Bienvenido ${user.fullName}',
+          'Bienvenido ${user?.fullName ?? username}',
           backgroundColor: Colors.green,
           colorText: Colors.white,
           icon: const Icon(Icons.check_circle, color: Colors.white),

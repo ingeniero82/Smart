@@ -4,10 +4,18 @@ part 'sale.g.dart';
 
 @collection
 class Sale {
-  Id id = Isar.autoIncrement;
+  @Index(type: IndexType.value)
+  int id = 0;
+  
+  @Index()
   late DateTime date;
+  
+  @Index()
   late double total;
+  
   late String user;
+  
+  @Index()
   late List<SaleItem> items;
 }
 
