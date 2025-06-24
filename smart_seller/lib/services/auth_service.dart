@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/user.dart';
+import '../models/permissions.dart';
 import 'database_service.dart';
 
 class AuthService extends GetxService {
@@ -75,8 +76,26 @@ class AuthService extends GetxService {
     }
   }
   
-  // Verificar permisos del usuario
-  bool hasPermission(UserRole requiredRole) {
+  // Verificar permisos del usuario actual
+  bool hasPermission(Permission permission) {
+    if (_currentUser.value == null) return false;
+    return RolePermissions.hasPermission(_currentUser.value!.role, permission);
+  }
+  
+  // Verificar si puede acceder a una sección específica
+  bool canAccessSection(String section) {
+    if (_currentUser.value == null) return false;
+    return RolePermissions.canAccessSection(_currentUser.value!.role, section);
+  }
+  
+  // Obtener todos los permisos del usuario actual
+  Set<Permission> getCurrentUserPermissions() {
+    if (_currentUser.value == null) return {};
+    return RolePermissions.getPermissions(_currentUser.value!.role);
+  }
+  
+  // Verificar permisos del usuario (método legacy para compatibilidad)
+  bool hasRolePermission(UserRole requiredRole) {
     if (_currentUser.value == null) return false;
     
     // El admin tiene todos los permisos

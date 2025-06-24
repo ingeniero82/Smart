@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../services/database_service.dart';
 import '../services/auth_service.dart';
 import '../models/user.dart';
+import '../models/permissions.dart';
 import '../widgets/user_form_dialog.dart';
 import '../widgets/user_edit_dialog.dart';
 
@@ -25,8 +26,8 @@ class _UsersScreenState extends State<UsersScreen> {
   }
 
   void _checkPermissions() {
-    // Verificar si el usuario tiene permisos de administrador
-    if (!AuthService.to.hasPermission(UserRole.admin)) {
+    // Verificar si el usuario tiene permisos para ver usuarios
+    if (!AuthService.to.hasPermission(Permission.viewUsers)) {
       Get.snackbar(
         'Acceso Denegado',
         'No tienes permisos para acceder a la gestión de usuarios',
@@ -61,6 +62,18 @@ class _UsersScreenState extends State<UsersScreen> {
   }
 
   Future<void> _openCreateUserDialog() async {
+    // Verificar permisos para crear usuarios
+    if (!AuthService.to.hasPermission(Permission.createUsers)) {
+      Get.snackbar(
+        'Permiso Denegado',
+        'No tienes permisos para crear usuarios',
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+        icon: const Icon(Icons.warning, color: Colors.white),
+      );
+      return;
+    }
+
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => const UserFormDialog(),
@@ -73,6 +86,18 @@ class _UsersScreenState extends State<UsersScreen> {
   }
 
   Future<void> _openEditUserDialog(User user) async {
+    // Verificar permisos para editar usuarios
+    if (!AuthService.to.hasPermission(Permission.editUsers)) {
+      Get.snackbar(
+        'Permiso Denegado',
+        'No tienes permisos para editar usuarios',
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+        icon: const Icon(Icons.warning, color: Colors.white),
+      );
+      return;
+    }
+
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => UserEditDialog(user: user),
@@ -85,10 +110,22 @@ class _UsersScreenState extends State<UsersScreen> {
   }
 
   Future<void> _toggleUserStatus(User user) async {
+    // Verificar permisos para activar/desactivar usuarios
+    if (!AuthService.to.hasPermission(Permission.activateUsers)) {
+      Get.snackbar(
+        'Permiso Denegado',
+        'No tienes permisos para activar/desactivar usuarios',
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+        icon: const Icon(Icons.warning, color: Colors.white),
+      );
+      return;
+    }
+
     // Confirmar acción
     final confirm = await Get.dialog<bool>(
       AlertDialog(
-        title: Text('Confirmar acción'),
+        title: const Text('Confirmar acción'),
         content: Text(
           user.isActive 
             ? '¿Estás seguro de que quieres desactivar a ${user.fullName}?'
@@ -97,7 +134,7 @@ class _UsersScreenState extends State<UsersScreen> {
         actions: [
           TextButton(
             onPressed: () => Get.back(result: false),
-            child: Text('Cancelar'),
+            child: const Text('Cancelar'),
           ),
           ElevatedButton(
             onPressed: () => Get.back(result: true),
@@ -106,7 +143,7 @@ class _UsersScreenState extends State<UsersScreen> {
             ),
             child: Text(
               user.isActive ? 'Desactivar' : 'Activar',
-              style: TextStyle(color: Colors.white),
+              style: const TextStyle(color: Colors.white),
             ),
           ),
         ],
@@ -126,7 +163,7 @@ class _UsersScreenState extends State<UsersScreen> {
             : 'Usuario ${user.fullName} activado correctamente',
           backgroundColor: Colors.green,
           colorText: Colors.white,
-          icon: Icon(Icons.check_circle, color: Colors.white),
+          icon: const Icon(Icons.check_circle, color: Colors.white),
         );
         
         // Recargar la lista
@@ -152,6 +189,18 @@ class _UsersScreenState extends State<UsersScreen> {
   }
 
   Future<void> _deleteUser(User user) async {
+    // Verificar permisos para eliminar usuarios
+    if (!AuthService.to.hasPermission(Permission.deleteUsers)) {
+      Get.snackbar(
+        'Permiso Denegado',
+        'No tienes permisos para eliminar usuarios',
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+        icon: const Icon(Icons.warning, color: Colors.white),
+      );
+      return;
+    }
+
     // No permitir eliminar al admin
     if (user.username == 'admin') {
       Get.snackbar(

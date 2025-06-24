@@ -4,7 +4,9 @@ import 'dashboard_controller.dart';
 import 'pos_screen.dart';
 import 'users_screen.dart';
 import 'products_screen.dart';
+import 'permissions_screen.dart';
 import '../services/auth_service.dart';
+import '../models/permissions.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -48,60 +50,84 @@ class DashboardScreen extends StatelessWidget {
                         selected: controller.selectedMenu.value == DashboardMenu.dashboard,
                         onTap: () => controller.selectMenu(DashboardMenu.dashboard),
                       ),
-                      _SidebarButton(
-                        icon: Icons.point_of_sale,
-                        label: 'Punto de Venta',
-                        selected: controller.selectedMenu.value == DashboardMenu.puntoDeVenta,
-                        onTap: () {
-                          Get.toNamed('/pos');
-                        },
-                      ),
-                      _SidebarButton(
-                        icon: Icons.inventory_2,
-                        label: 'Inventario',
-                        selected: controller.selectedMenu.value == DashboardMenu.inventario,
-                        onTap: () => controller.selectMenu(DashboardMenu.inventario),
-                      ),
-                      _SidebarButton(
-                        icon: Icons.people,
-                        label: 'Clientes',
-                        selected: controller.selectedMenu.value == DashboardMenu.clientes,
-                        onTap: () => controller.selectMenu(DashboardMenu.clientes),
-                      ),
-                      _SidebarButton(
-                        icon: Icons.bar_chart,
-                        label: 'Reportes',
-                        selected: controller.selectedMenu.value == DashboardMenu.reportes,
-                        onTap: () => controller.selectMenu(DashboardMenu.reportes),
-                      ),
-                      _SidebarButton(
-                        icon: Icons.settings,
-                        label: 'Configuración',
-                        selected: controller.selectedMenu.value == DashboardMenu.configuracion,
-                        onTap: () => controller.selectMenu(DashboardMenu.configuracion),
-                      ),
-                      _SidebarButton(
-                        icon: Icons.person,
-                        label: 'Usuarios',
-                        selected: controller.selectedMenu.value == DashboardMenu.usuarios,
-                        onTap: () => controller.selectMenu(DashboardMenu.usuarios),
-                      ),
-                      _SidebarButton(
-                        icon: Icons.history,
-                        label: 'Movimientos',
-                        selected: false,
-                        onTap: () {
-                          Get.toNamed('/movimientos');
-                        },
-                      ),
-                      _SidebarButton(
-                        icon: Icons.list_alt,
-                        label: 'Historial de Ventas',
-                        selected: false,
-                        onTap: () {
-                          Get.toNamed('/ventas');
-                        },
-                      ),
+                      // Punto de Venta - Solo si tiene permisos
+                      if (authService.hasPermission(Permission.accessPOS))
+                        _SidebarButton(
+                          icon: Icons.point_of_sale,
+                          label: 'Punto de Venta',
+                          selected: controller.selectedMenu.value == DashboardMenu.puntoDeVenta,
+                          onTap: () {
+                            Get.toNamed('/pos');
+                          },
+                        ),
+                      // Inventario - Solo si tiene permisos
+                      if (authService.hasPermission(Permission.viewInventory))
+                        _SidebarButton(
+                          icon: Icons.inventory_2,
+                          label: 'Inventario',
+                          selected: controller.selectedMenu.value == DashboardMenu.inventario,
+                          onTap: () => controller.selectMenu(DashboardMenu.inventario),
+                        ),
+                      // Clientes - Solo si tiene permisos
+                      if (authService.hasPermission(Permission.viewClients))
+                        _SidebarButton(
+                          icon: Icons.people,
+                          label: 'Clientes',
+                          selected: controller.selectedMenu.value == DashboardMenu.clientes,
+                          onTap: () => controller.selectMenu(DashboardMenu.clientes),
+                        ),
+                      // Reportes - Solo si tiene permisos
+                      if (authService.hasPermission(Permission.viewReports))
+                        _SidebarButton(
+                          icon: Icons.bar_chart,
+                          label: 'Reportes',
+                          selected: controller.selectedMenu.value == DashboardMenu.reportes,
+                          onTap: () => controller.selectMenu(DashboardMenu.reportes),
+                        ),
+                      // Configuración - Solo si tiene permisos
+                      if (authService.hasPermission(Permission.accessSettings))
+                        _SidebarButton(
+                          icon: Icons.settings,
+                          label: 'Configuración',
+                          selected: controller.selectedMenu.value == DashboardMenu.configuracion,
+                          onTap: () => controller.selectMenu(DashboardMenu.configuracion),
+                        ),
+                      // Usuarios - Solo si tiene permisos
+                      if (authService.hasPermission(Permission.viewUsers))
+                        _SidebarButton(
+                          icon: Icons.person,
+                          label: 'Usuarios',
+                          selected: controller.selectedMenu.value == DashboardMenu.usuarios,
+                          onTap: () => controller.selectMenu(DashboardMenu.usuarios),
+                        ),
+                      // Permisos - Solo si tiene permisos de configuración
+                      if (authService.hasPermission(Permission.modifySettings))
+                        _SidebarButton(
+                          icon: Icons.security,
+                          label: 'Permisos',
+                          selected: controller.selectedMenu.value == DashboardMenu.permisos,
+                          onTap: () => controller.selectMenu(DashboardMenu.permisos),
+                        ),
+                      // Movimientos - Solo si tiene permisos
+                      if (authService.hasPermission(Permission.viewMovements))
+                        _SidebarButton(
+                          icon: Icons.history,
+                          label: 'Movimientos',
+                          selected: false,
+                          onTap: () {
+                            Get.toNamed('/movimientos');
+                          },
+                        ),
+                      // Historial de Ventas - Solo si tiene permisos
+                      if (authService.hasPermission(Permission.viewSalesHistory))
+                        _SidebarButton(
+                          icon: Icons.list_alt,
+                          label: 'Historial de Ventas',
+                          selected: false,
+                          onTap: () {
+                            Get.toNamed('/ventas');
+                          },
+                        ),
                     ],
                   ),
                 ),
@@ -201,6 +227,8 @@ class DashboardScreen extends StatelessWidget {
                     return Center(child: Text('Configuración', style: TextStyle(fontSize: 28, color: Colors.grey[700])));
                   case DashboardMenu.usuarios:
                     return const UsersScreen();
+                  case DashboardMenu.permisos:
+                    return const PermissionsScreen();
                 }
               }),
             ),
