@@ -5,6 +5,8 @@ import '../services/database_service.dart';
 import '../services/import_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'package:intl/intl.dart';
+import 'package:file_picker/file_picker.dart';
 
 class ProductsScreen extends StatefulWidget {
   const ProductsScreen({super.key});
@@ -19,6 +21,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
   List<Product> _filteredProducts = [];
   ProductCategory? _selectedCategory;
   bool _isLoading = true;
+
+  final NumberFormat copFormat = NumberFormat.currency(locale: 'es_CO', symbol: '\$', decimalDigits: 2);
 
   @override
   void initState() {
@@ -137,7 +141,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
       );
 
       final products = await ImportService.importProductsFromFile();
-      
       Get.back(); // Cerrar diálogo de carga
 
       if (products.isEmpty) {
@@ -150,46 +153,75 @@ class _ProductsScreenState extends State<ProductsScreen> {
         return;
       }
 
-      // Mostrar resumen de importación
-      final confirmed = await Get.dialog<bool>(
+      // Detectar productos repetidos
+      final existingProducts = await DatabaseService.getAllProducts();
+      final existingCodes = existingProducts.map((p) => p.code).toSet();
+      final repeated = products.where((p) => existingCodes.contains(p.code)).toList();
+      final newProducts = products.where((p) => !existingCodes.contains(p.code)).toList();
+
+      // Mostrar resumen y opciones
+      final action = await Get.dialog<String>(
         AlertDialog(
-          title: const Text('Confirmar importación'),
+          title: const Text('Resumen de importación'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Se encontraron ${products.length} productos para importar:'),
-              const SizedBox(height: 16),
-              ...products.take(5).map((p) => Text('• ${p.name} (${p.code})')),
-              if (products.length > 5) Text('... y ${products.length - 5} más'),
-              const SizedBox(height: 16),
-              const Text('¿Deseas continuar con la importación?'),
+              Text('Productos nuevos: ${newProducts.length}'),
+              Text('Productos repetidos: ${repeated.length}'),
+              if (repeated.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                const Text('¿Qué deseas hacer con los productos repetidos?'),
+              ],
             ],
           ),
           actions: [
+            if (repeated.isNotEmpty)
+              TextButton(
+                onPressed: () => Get.back(result: 'omit'),
+                child: const Text('Omitir repetidos'),
+              ),
+            if (repeated.isNotEmpty)
+              TextButton(
+                onPressed: () => Get.back(result: 'overwrite'),
+                child: const Text('Sobrescribir repetidos'),
+              ),
             TextButton(
-              onPressed: () => Get.back(result: false),
+              onPressed: () => Get.back(result: 'cancel'),
               child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () => Get.back(result: true),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-              child: const Text('Importar', style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
       );
 
-      if (confirmed == true) {
-        await ImportService.saveImportedProducts(products);
+      if (action == 'cancel' || action == null) return;
+
+      List<Product> toImport = [];
+      if (action == 'omit') {
+        toImport = newProducts;
+      } else if (action == 'overwrite') {
+        // Sobrescribir: mantener los nuevos y los repetidos (se actualizarán)
+        toImport = products;
+      }
+
+      if (toImport.isEmpty) {
         Get.snackbar(
-          'Éxito',
-          '${products.length} productos importados correctamente',
-          backgroundColor: Colors.green,
+          'Sin cambios',
+          'No hay productos nuevos para importar.',
+          backgroundColor: Colors.orange,
           colorText: Colors.white,
         );
-        _loadProducts();
+        return;
       }
+
+      await ImportService.saveImportedProducts(toImport);
+      Get.snackbar(
+        'Éxito',
+        '${toImport.length} productos importados correctamente',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+      _loadProducts();
     } catch (e) {
       Get.back(); // Cerrar diálogo de carga si hay error
       Get.snackbar(
@@ -204,12 +236,17 @@ class _ProductsScreenState extends State<ProductsScreen> {
   Future<void> _exportProductsToCsv() async {
     try {
       final products = await DatabaseService.getAllProducts();
-      final dir = await getApplicationDocumentsDirectory();
-      final filePath = '${dir.path}/productos_exportados.csv';
-      await ImportService.exportProductsToCsv(products, filePath);
+      String? outputPath = await FilePicker.platform.saveFile(
+        dialogTitle: 'Guardar productos como...',
+        fileName: 'productos_exportados.csv',
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+      );
+      if (outputPath == null) return; // Usuario canceló
+      await ImportService.exportProductsToCsv(products, outputPath);
       Get.snackbar(
         'Éxito',
-        'Archivo exportado en: productos_exportados.csv',
+        'Archivo exportado en: $outputPath',
         backgroundColor: Colors.green,
         colorText: Colors.white,
         duration: const Duration(seconds: 5),
@@ -493,8 +530,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                     ),
                                   ),
                                   DataCell(Text(_getCategoryName(product.category))),
-                                  DataCell(Text('\$${product.price.toStringAsFixed(2)}')),
-                                  DataCell(Text('\$${product.cost.toStringAsFixed(2)}')),
+                                  DataCell(Text(copFormat.format(product.price))),
+                                  DataCell(Text(copFormat.format(product.cost))),
                                   DataCell(
                                     Row(
                                       children: [

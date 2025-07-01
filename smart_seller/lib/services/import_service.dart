@@ -214,6 +214,11 @@ class ImportService {
     try {
       await DatabaseService.isar.writeTxn(() async {
         for (Product product in products) {
+          // Buscar si ya existe un producto con el mismo código usando getByCode
+          final existing = await DatabaseService.isar.products.getByCode(product.code);
+          if (existing != null) {
+            product.id = existing.id; // Actualizar el existente
+          }
           await DatabaseService.isar.products.put(product);
         }
       });
