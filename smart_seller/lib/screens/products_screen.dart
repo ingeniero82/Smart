@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/product.dart';
 import '../services/database_service.dart';
+import '../services/import_service.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 class ProductsScreen extends StatefulWidget {
   const ProductsScreen({super.key});
@@ -118,6 +121,153 @@ class _ProductsScreenState extends State<ProductsScreen> {
     }
   }
 
+  Future<void> _importProductsFromExcel() async {
+    try {
+      Get.dialog(
+        const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Importando productos...'),
+            ],
+          ),
+        ),
+        barrierDismissible: false,
+      );
+
+      final products = await ImportService.importProductsFromFile();
+      
+      Get.back(); // Cerrar diálogo de carga
+
+      if (products.isEmpty) {
+        Get.snackbar(
+          'Advertencia',
+          'No se encontraron productos válidos en el archivo',
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+        return;
+      }
+
+      // Mostrar resumen de importación
+      final confirmed = await Get.dialog<bool>(
+        AlertDialog(
+          title: const Text('Confirmar importación'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Se encontraron ${products.length} productos para importar:'),
+              const SizedBox(height: 16),
+              ...products.take(5).map((p) => Text('• ${p.name} (${p.code})')),
+              if (products.length > 5) Text('... y ${products.length - 5} más'),
+              const SizedBox(height: 16),
+              const Text('¿Deseas continuar con la importación?'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(result: false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Get.back(result: true),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+              child: const Text('Importar', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed == true) {
+        await ImportService.saveImportedProducts(products);
+        Get.snackbar(
+          'Éxito',
+          '${products.length} productos importados correctamente',
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+        _loadProducts();
+      }
+    } catch (e) {
+      Get.back(); // Cerrar diálogo de carga si hay error
+      Get.snackbar(
+        'Error',
+        'Error al importar productos: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  Future<void> _exportProductsToCsv() async {
+    try {
+      final products = await DatabaseService.getAllProducts();
+      final dir = await getApplicationDocumentsDirectory();
+      final filePath = '${dir.path}/productos_exportados.csv';
+      await ImportService.exportProductsToCsv(products, filePath);
+      Get.snackbar(
+        'Éxito',
+        'Archivo exportado en: productos_exportados.csv',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 5),
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'No se pudo exportar: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  void _showExcelTemplate() {
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Plantilla Excel'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Para importar productos, usa esta estructura en tu archivo Excel:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: SelectableText(
+                ImportService.getExcelTemplate(),
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Notas:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const Text('• CÓDIGO y NOMBRE son obligatorios'),
+            const Text('• PRECIO y STOCK se establecen en 0 si no se especifican'),
+            const Text('• CATEGORÍA debe ser una de las categorías disponibles'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -150,6 +300,46 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   ),
                 ),
                 const Spacer(),
+                // Botón Plantilla Excel
+                OutlinedButton.icon(
+                  onPressed: _showExcelTemplate,
+                  icon: Icon(Icons.description, color: Colors.blue[700]),
+                  label: Text('Plantilla Excel', style: TextStyle(color: Colors.blue[700])),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Botón Importar Excel
+                ElevatedButton.icon(
+                  onPressed: _importProductsFromExcel,
+                  icon: const Icon(Icons.upload_file, color: Colors.white),
+                  label: const Text('Importar Excel/CSV', style: TextStyle(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green[600],
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton.icon(
+                  onPressed: _exportProductsToCsv,
+                  icon: Icon(Icons.download, color: Colors.blue[700]),
+                  label: Text('Exportar productos', style: TextStyle(color: Colors.blue[700])),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Botón Nuevo Producto
                 ElevatedButton.icon(
                   onPressed: _showAddProductDialog,
                   icon: const Icon(Icons.add, color: Colors.white),

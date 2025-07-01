@@ -102,11 +102,11 @@ class PermissionsController extends GetxController {
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Get.back();
               // Restaurar usando el servicio
               final permissionsService = Get.find<PermissionsService>();
-              permissionsService.restoreDefaultPermissions();
+              await permissionsService.restoreDefaultPermissions();
               _loadPermissions(); // Recargar en el controlador
               Get.snackbar(
                 'Restaurado',

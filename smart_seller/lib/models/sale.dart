@@ -4,8 +4,7 @@ part 'sale.g.dart';
 
 @collection
 class Sale {
-  @Index(type: IndexType.value)
-  int id = 0;
+  Id id = Isar.autoIncrement;
   
   @Index()
   late DateTime date;
@@ -15,7 +14,6 @@ class Sale {
   
   late String user;
   
-  @Index()
   late List<SaleItem> items;
 }
 

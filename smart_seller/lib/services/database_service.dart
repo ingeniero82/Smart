@@ -27,9 +27,22 @@ class DatabaseService {
     await debugListAllUsers();
   }
   
-  // Crear usuario admin por defecto (forzado)
+  // Crear usuario admin por defecto (solo si no existe)
   static Future<void> _createDefaultUser() async {
-    print('🔧 Forzando creación de usuario admin...');
+    print('🔧 Verificando si existe usuario admin...');
+    
+    // Verificar si ya existe el admin
+    final existingAdmin = await isar.users
+        .filter()
+        .usernameEqualTo('admin')
+        .findFirst();
+    
+    if (existingAdmin != null) {
+      print('✅ Usuario admin ya existe, no se crea uno nuevo');
+      return;
+    }
+    
+    print('🔧 Creando usuario admin por defecto...');
     final adminUser = User()
       ..username = 'admin'
       ..password = '123456'
@@ -39,13 +52,11 @@ class DatabaseService {
       ..isActive = true;
 
     await isar.writeTxn(() async {
-      // Borra todos los usuarios anteriores
-      await isar.users.clear();
-      // Crea el usuario admin
+      // Solo crear el admin, NO borrar usuarios existentes
       await isar.users.put(adminUser);
     });
 
-    print('✅ Usuario admin forzado: admin / 123456');
+    print('✅ Usuario admin creado: admin / 123456');
   }
   
   // Buscar usuario por username y password

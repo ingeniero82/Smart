@@ -44,7 +44,34 @@ const SaleSchema = CollectionSchema(
   deserialize: _saleDeserialize,
   deserializeProp: _saleDeserializeProp,
   idName: r'id',
-  indexes: {},
+  indexes: {
+    r'date': IndexSchema(
+      id: -7552997827385218417,
+      name: r'date',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'date',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
+    ),
+    r'total': IndexSchema(
+      id: -5575994006217988192,
+      name: r'total',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'total',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
+    )
+  },
   links: {},
   embeddedSchemas: {r'SaleItem': SaleItemSchema},
   getId: _saleGetId,
@@ -153,6 +180,22 @@ extension SaleQueryWhereSort on QueryBuilder<Sale, Sale, QWhere> {
       return query.addWhereClause(const IdWhereClause.any());
     });
   }
+
+  QueryBuilder<Sale, Sale, QAfterWhere> anyDate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'date'),
+      );
+    });
+  }
+
+  QueryBuilder<Sale, Sale, QAfterWhere> anyTotal() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'total'),
+      );
+    });
+  }
 }
 
 extension SaleQueryWhere on QueryBuilder<Sale, Sale, QWhereClause> {
@@ -216,6 +259,182 @@ extension SaleQueryWhere on QueryBuilder<Sale, Sale, QWhereClause> {
         lower: lowerId,
         includeLower: includeLower,
         upper: upperId,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Sale, Sale, QAfterWhereClause> dateEqualTo(DateTime date) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'date',
+        value: [date],
+      ));
+    });
+  }
+
+  QueryBuilder<Sale, Sale, QAfterWhereClause> dateNotEqualTo(DateTime date) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'date',
+              lower: [],
+              upper: [date],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'date',
+              lower: [date],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'date',
+              lower: [date],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'date',
+              lower: [],
+              upper: [date],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Sale, Sale, QAfterWhereClause> dateGreaterThan(
+    DateTime date, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'date',
+        lower: [date],
+        includeLower: include,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Sale, Sale, QAfterWhereClause> dateLessThan(
+    DateTime date, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'date',
+        lower: [],
+        upper: [date],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<Sale, Sale, QAfterWhereClause> dateBetween(
+    DateTime lowerDate,
+    DateTime upperDate, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'date',
+        lower: [lowerDate],
+        includeLower: includeLower,
+        upper: [upperDate],
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Sale, Sale, QAfterWhereClause> totalEqualTo(double total) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'total',
+        value: [total],
+      ));
+    });
+  }
+
+  QueryBuilder<Sale, Sale, QAfterWhereClause> totalNotEqualTo(double total) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'total',
+              lower: [],
+              upper: [total],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'total',
+              lower: [total],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'total',
+              lower: [total],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'total',
+              lower: [],
+              upper: [total],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Sale, Sale, QAfterWhereClause> totalGreaterThan(
+    double total, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'total',
+        lower: [total],
+        includeLower: include,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Sale, Sale, QAfterWhereClause> totalLessThan(
+    double total, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'total',
+        lower: [],
+        upper: [total],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<Sale, Sale, QAfterWhereClause> totalBetween(
+    double lowerTotal,
+    double upperTotal, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'total',
+        lower: [lowerTotal],
+        includeLower: includeLower,
+        upper: [upperTotal],
         includeUpper: includeUpper,
       ));
     });
