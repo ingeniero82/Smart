@@ -16,13 +16,46 @@ class UsersScreen extends StatefulWidget {
 
 class _UsersScreenState extends State<UsersScreen> {
   List<User> users = [];
+  List<User> filteredUsers = [];
   bool isLoading = true;
+  final TextEditingController _searchController = TextEditingController();
+  UserRole? _selectedRoleFilter;
+  bool? _selectedStatusFilter;
 
   @override
   void initState() {
     super.initState();
     _checkPermissions();
     _loadUsers();
+    _searchController.addListener(_filterUsers);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _filterUsers() {
+    setState(() {
+      filteredUsers = users.where((user) {
+        // Filtro por texto de búsqueda
+        final searchText = _searchController.text.toLowerCase();
+        final matchesSearch = user.fullName.toLowerCase().contains(searchText) ||
+                            user.username.toLowerCase().contains(searchText) ||
+                            _getRoleText(user.role).toLowerCase().contains(searchText);
+        
+        // Filtro por rol
+        final matchesRole = _selectedRoleFilter == null || 
+                           user.role == _selectedRoleFilter;
+        
+        // Filtro por estado
+        final matchesStatus = _selectedStatusFilter == null || 
+                             user.isActive == _selectedStatusFilter;
+        
+        return matchesSearch && matchesRole && matchesStatus;
+      }).toList();
+    });
   }
 
   void _checkPermissions() {
@@ -46,6 +79,7 @@ class _UsersScreenState extends State<UsersScreen> {
       final usersList = await DatabaseService.getAllUsers();
       setState(() {
         users = usersList;
+        filteredUsers = usersList;
         isLoading = false;
       });
     } catch (e) {
@@ -390,6 +424,139 @@ class _UsersScreenState extends State<UsersScreen> {
         ),
         const SizedBox(height: 32),
         
+        // Filtros de búsqueda
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Filtros de Búsqueda',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF22315B),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  // Campo de búsqueda
+                  Expanded(
+                    flex: 2,
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Buscar por nombre, usuario o rol...',
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Filtro por rol
+                  Expanded(
+                    child: DropdownButtonFormField<UserRole?>(
+                      value: _selectedRoleFilter,
+                      decoration: InputDecoration(
+                        labelText: 'Rol',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('Todos los roles'),
+                        ),
+                        ...UserRole.values.map((role) => DropdownMenuItem(
+                          value: role,
+                          child: Text(_getRoleText(role)),
+                        )),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedRoleFilter = value;
+                        });
+                        _filterUsers();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Filtro por estado
+                  Expanded(
+                    child: DropdownButtonFormField<bool?>(
+                      value: _selectedStatusFilter,
+                      decoration: InputDecoration(
+                        labelText: 'Estado',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('Todos'),
+                        ),
+                        const DropdownMenuItem(
+                          value: true,
+                          child: Text('Activo'),
+                        ),
+                        const DropdownMenuItem(
+                          value: false,
+                          child: Text('Inactivo'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedStatusFilter = value;
+                        });
+                        _filterUsers();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Botón limpiar filtros
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _searchController.clear();
+                        _selectedRoleFilter = null;
+                        _selectedStatusFilter = null;
+                      });
+                      _filterUsers();
+                    },
+                    icon: const Icon(Icons.clear),
+                    label: const Text('Limpiar'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey[600],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        
         // Lista de usuarios
         Expanded(
           child: isLoading
@@ -398,20 +565,45 @@ class _UsersScreenState extends State<UsersScreen> {
                     color: Color(0xFF6C47FF),
                   ),
                 )
-              : users.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No hay usuarios registrados',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey,
-                        ),
+              : filteredUsers.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.search_off,
+                            size: 64,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            users.isEmpty 
+                              ? 'No hay usuarios registrados'
+                              : 'No se encontraron usuarios con los filtros aplicados',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey[600],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          if (users.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              'Intenta cambiar los filtros de búsqueda',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[500],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ],
                       ),
                     )
                   : ListView.builder(
-                      itemCount: users.length,
+                      itemCount: filteredUsers.length,
                       itemBuilder: (context, index) {
-                        final user = users[index];
+                        final user = filteredUsers[index];
                         return _UserCard(
                           user: user,
                           onEdit: () {

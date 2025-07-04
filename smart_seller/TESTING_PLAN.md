@@ -62,18 +62,22 @@
 - [x] **Crear usuario**
   - [x] Formulario completo
   - [x] Validaciones de campos
-  - [ ] Guardado en base de datos
-- [ ] **Editar usuario**
-  - [ ] Cargar datos existentes
-  - [ ] Modificar información
-  - [ ] Guardar cambios
-- [ ] **Eliminar usuario**
-  - [ ] Confirmación de eliminación
-  - [ ] Eliminación de base de datos
-- [ ] **Listar usuarios**
-  - [ ] Mostrar todos los usuarios
-  - [ ] Filtros de búsqueda
-  - [ ] Paginación
+  - [x] Guardado en base de datos
+- [x] **Editar usuario**
+  - [x] Cargar datos existentes
+  - [x] Modificar información
+  - [x] Guardar cambios
+- [x] **Eliminar usuario**
+  - [x] Confirmación de eliminación
+  - [x] Eliminación de base de datos
+- [x] **Listar usuarios**
+  - [x] Mostrar todos los usuarios
+  - [x] Filtros de búsqueda
+  - [x] Búsqueda por nombre y usuario
+  - [x] Filtro por rol (Admin, Gerente, Cajero)
+  - [x] Filtro por estado (Activo/Inactivo)
+  - [x] Botón limpiar filtros
+  - [x] Mensaje cuando no hay resultados
 
 #### Bugs Encontrados:
 - [ ] Ninguno
