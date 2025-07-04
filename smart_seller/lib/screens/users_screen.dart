@@ -308,7 +308,31 @@ class _UsersScreenState extends State<UsersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6F8FA),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF22315B)),
+          onPressed: () => Get.back(),
+        ),
+        title: const Text(
+          'Gestión de Usuarios',
+          style: TextStyle(
+            color: Color(0xFF22315B),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.home, color: Color(0xFF22315B)),
+            onPressed: () => Get.offAllNamed('/dashboard'),
+            tooltip: 'Ir al Dashboard',
+          ),
+        ],
+      ),
+      body: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Header
@@ -404,8 +428,9 @@ class _UsersScreenState extends State<UsersScreen> {
                     ),
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 }
 
 class _UserCard extends StatelessWidget {

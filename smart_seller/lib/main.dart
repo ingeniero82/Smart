@@ -6,6 +6,7 @@ import 'screens/pos_screen.dart';
 import 'screens/inventory_movements_screen.dart';
 import 'screens/sales_history_screen.dart';
 import 'screens/products_screen.dart';
+import 'screens/users_screen.dart';
 import 'services/database_service.dart';
 import 'services/auth_service.dart';
 import 'services/permissions_service.dart';
@@ -66,6 +67,11 @@ class MyApp extends StatelessWidget {
         GetPage(
           name: '/productos', 
           page: () => const ProductsScreen(),
+          middlewares: [AuthMiddleware()], // Solo usuarios autenticados
+        ),
+        GetPage(
+          name: '/usuarios', 
+          page: () => const UsersScreen(),
           middlewares: [AuthMiddleware()], // Solo usuarios autenticados
         ),
       ],

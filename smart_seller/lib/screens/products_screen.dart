@@ -309,9 +309,31 @@ class _ProductsScreenState extends State<ProductsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8FA),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF22315B)),
+          onPressed: () => Get.back(),
+        ),
+        title: const Text(
+          'Gestión de Inventario',
+          style: TextStyle(
+            color: Color(0xFF22315B),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.home, color: Color(0xFF22315B)),
+            onPressed: () => Get.offAllNamed('/dashboard'),
+            tooltip: 'Ir al Dashboard',
+          ),
+        ],
+      ),
       body: Column(
         children: [
-          // Header
+          // Botones de acción
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -326,17 +348,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
             ),
             child: Row(
               children: [
-                Icon(Icons.inventory_2, color: Colors.blue[700], size: 32),
-                const SizedBox(width: 16),
-                const Text(
-                  'Gestión de Inventario',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF22315B),
-                  ),
-                ),
-                const Spacer(),
                 // Botón Plantilla Excel
                 OutlinedButton.icon(
                   onPressed: _showExcelTemplate,

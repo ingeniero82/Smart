@@ -43,13 +43,31 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF6F8FA),
       appBar: AppBar(
-        title: const Text('Historial de Ventas'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF22315B)),
+          onPressed: () => Get.back(),
+        ),
+        title: const Text(
+          'Historial de Ventas',
+          style: TextStyle(
+            color: Color(0xFF22315B),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.calendar_today),
+            icon: const Icon(Icons.calendar_today, color: Color(0xFF22315B)),
             onPressed: pickDate,
             tooltip: 'Seleccionar fecha',
+          ),
+          IconButton(
+            icon: const Icon(Icons.home, color: Color(0xFF22315B)),
+            onPressed: () => Get.offAllNamed('/dashboard'),
+            tooltip: 'Ir al Dashboard',
           ),
         ],
       ),

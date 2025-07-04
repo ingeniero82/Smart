@@ -76,6 +76,28 @@ class PermissionsScreen extends StatelessWidget {
     
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8FA),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF22315B)),
+          onPressed: () => Get.back(),
+        ),
+        title: const Text(
+          'Gestión de Permisos',
+          style: TextStyle(
+            color: Color(0xFF22315B),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.home, color: Color(0xFF22315B)),
+            onPressed: () => Get.offAllNamed('/dashboard'),
+            tooltip: 'Ir al Dashboard',
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
