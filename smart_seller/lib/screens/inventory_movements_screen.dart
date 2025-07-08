@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import '../models/inventory_movement.dart';
 import '../models/product.dart';
 import '../models/user.dart';
-import '../services/database_service.dart';
+import '../services/sqlite_database_service.dart';
 
 class InventoryMovementsScreen extends StatefulWidget {
   const InventoryMovementsScreen({Key? key}) : super(key: key);
@@ -29,9 +29,9 @@ class _InventoryMovementsScreenState extends State<InventoryMovementsScreen> {
       _isLoading = true;
     });
     try {
-      final movements = await DatabaseService.getAllInventoryMovements();
-      final products = await DatabaseService.getAllProducts();
-      final users = await DatabaseService.getAllUsers();
+      final movements = await SQLiteDatabaseService.getAllInventoryMovements();
+      final products = await SQLiteDatabaseService.getAllProducts();
+      final users = await SQLiteDatabaseService.getAllUsers();
       setState(() {
         _movements = movements;
         _products = products;
@@ -226,10 +226,36 @@ class _MovementFormDialogState extends State<_MovementFormDialog> {
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       if (_formKey.currentState!.validate()) {
-                        Get.snackbar('Movimiento registrado', 'El movimiento se registraría aquí.', backgroundColor: Colors.green, colorText: Colors.white);
+                        try {
+                          final movement = InventoryMovement(
+                            productId: _selectedProduct!.id!,
+                            type: _selectedType,
+                            quantity: int.parse(_quantityController.text),
+                            reason: _selectedReason,
+                            date: DateTime.now(),
+                            userId: 1, // TODO: Obtener ID del usuario actual
+                            observations: _obsController.text.trim().isEmpty ? null : _obsController.text.trim(),
+                          );
+                          
+                          await SQLiteDatabaseService.saveInventoryMovement(movement);
+                          
+                          Get.snackbar(
+                            'Éxito', 
+                            'Movimiento registrado correctamente', 
+                            backgroundColor: Colors.green, 
+                            colorText: Colors.white
+                          );
                         Navigator.of(context).pop();
+                        } catch (e) {
+                          Get.snackbar(
+                            'Error', 
+                            'No se pudo registrar el movimiento: $e', 
+                            backgroundColor: Colors.red, 
+                            colorText: Colors.white
+                          );
+                        }
                       }
                     },
                     child: const Text('Guardar'),

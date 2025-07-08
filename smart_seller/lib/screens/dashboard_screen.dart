@@ -7,6 +7,8 @@ import 'products_screen.dart';
 import 'permissions_screen.dart';
 import '../services/auth_service.dart';
 import '../models/permissions.dart';
+import '../models/user.dart';
+import 'package:intl/intl.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -549,12 +551,7 @@ class _DashboardContent extends StatelessWidget {
     
     void _configuracion() {
       if (authService.hasPermission(Permission.accessSettings)) {
-        Get.snackbar(
-          'Módulo en Desarrollo',
-          'La configuración estará disponible próximamente',
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
-        );
+        Get.toNamed('/migracion');
       } else {
         Get.snackbar(
           'Acceso Denegado',
@@ -563,6 +560,14 @@ class _DashboardContent extends StatelessWidget {
           colorText: Colors.white,
         );
       }
+    }
+    
+    void _debug() {
+      Get.toNamed('/debug');
+    }
+    
+    void _moduleMigration() {
+      Get.toNamed('/module-migration');
     }
     
     void _gestionarUsuarios() {
@@ -616,55 +621,55 @@ class _DashboardContent extends StatelessWidget {
         const SizedBox(height: 32),
         // Tarjetas de resumen adaptables según permisos
         if (authService.hasPermission(Permission.viewReports)) ...[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                child: _SummaryCard(
-                  title: 'VENTAS HOY',
-                  value: '2,450',
-                  subtitle: '+15% vs ayer',
-                  icon: Icons.monetization_on,
-                  color: Color(0xFF4CAF50),
-                  borderColor: Color(0xFF4CAF50),
-                ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(
+              child: _SummaryCard(
+                title: 'VENTAS HOY',
+                value: NumberFormat.currency(locale: 'es_CO', symbol: '\$ ', decimalDigits: 0, customPattern: '\u00A4#,##0').format(2450),
+                subtitle: '+15% vs ayer',
+                icon: Icons.monetization_on,
+                color: Color(0xFF4CAF50),
+                borderColor: Color(0xFF4CAF50),
               ),
-              SizedBox(width: 20),
-              Expanded(
-                child: _SummaryCard(
-                  title: 'PRODUCTOS VENDIDOS',
-                  value: '156',
-                  subtitle: '+8% vs ayer',
-                  icon: Icons.inventory_2,
-                  color: Color(0xFFFF9800),
-                  borderColor: Color(0xFFFF9800),
-                ),
+            ),
+            SizedBox(width: 20),
+            Expanded(
+              child: _SummaryCard(
+                title: 'PRODUCTOS VENDIDOS',
+                value: '156',
+                subtitle: '+8% vs ayer',
+                icon: Icons.inventory_2,
+                color: Color(0xFFFF9800),
+                borderColor: Color(0xFFFF9800),
               ),
-              SizedBox(width: 20),
-              Expanded(
-                child: _SummaryCard(
-                  title: 'CLIENTES ATENDIDOS',
-                  value: '42',
-                  subtitle: '+22% vs ayer',
-                  icon: Icons.people,
-                  color: Color(0xFFF44336),
-                  borderColor: Color(0xFFF44336),
-                ),
+            ),
+            SizedBox(width: 20),
+            Expanded(
+              child: _SummaryCard(
+                title: 'CLIENTES ATENDIDOS',
+                value: '42',
+                subtitle: '+22% vs ayer',
+                icon: Icons.people,
+                color: Color(0xFFF44336),
+                borderColor: Color(0xFFF44336),
               ),
-              SizedBox(width: 20),
-              Expanded(
-                child: _SummaryCard(
-                  title: 'INGRESOS SEMANALES',
-                  value: '12,850',
-                  subtitle: '+5% vs sem. anterior',
-                  icon: Icons.sticky_note_2,
-                  color: Color(0xFF7C4DFF),
-                  borderColor: Color(0xFF7C4DFF),
-                ),
+            ),
+            SizedBox(width: 20),
+            Expanded(
+              child: _SummaryCard(
+                title: 'INGRESOS SEMANALES',
+                value: NumberFormat.currency(locale: 'es_CO', symbol: '\$ ', decimalDigits: 0, customPattern: '\u00A4#,##0').format(12850),
+                subtitle: '+5% vs sem. anterior',
+                icon: Icons.sticky_note_2,
+                color: Color(0xFF7C4DFF),
+                borderColor: Color(0xFF7C4DFF),
               ),
-            ],
-          ),
-          const SizedBox(height: 32),
+            ),
+          ],
+        ),
+        const SizedBox(height: 32),
         ],
         // Mensaje para usuarios sin permisos de reportes
         if (!authService.hasPermission(Permission.viewReports)) ...[
@@ -766,66 +771,66 @@ class _DashboardContent extends StatelessWidget {
             }
             
             return Center(
-              child: Wrap(
-                spacing: 24,
-                runSpacing: 24,
-                children: [
+          child: Wrap(
+            spacing: 24,
+            runSpacing: 24,
+            children: [
                   // Nueva Venta - Solo si tiene permisos de POS
                   if (authService.hasPermission(Permission.accessPOS))
-                    _QuickActionCard(
-                      icon: Icons.point_of_sale,
-                      color: Color(0xFF2979FF),
-                      title: 'Nueva Venta',
-                      description: 'Iniciar una nueva transacción de venta y procesar productos',
+              _QuickActionCard(
+                icon: Icons.point_of_sale,
+                color: Color(0xFF2979FF),
+                title: 'Nueva Venta',
+                description: 'Iniciar una nueva transacción de venta y procesar productos',
                       onTap: _nuevaVenta,
-                    ),
+              ),
                   // Gestionar Inventario - Solo si tiene permisos de inventario
                   if (authService.hasPermission(Permission.viewInventory))
-                    _QuickActionCard(
-                      icon: Icons.inventory,
-                      color: Color(0xFF7C4DFF),
-                      title: 'Gestionar Inventario',
-                      description: 'Administrar stock, agregar productos y controlar existencias',
+              _QuickActionCard(
+                icon: Icons.inventory,
+                color: Color(0xFF7C4DFF),
+                title: 'Gestionar Inventario',
+                description: 'Administrar stock, agregar productos y controlar existencias',
                       onTap: _gestionarInventario,
-                    ),
+              ),
                   // Gestión de Clientes - Solo si tiene permisos de clientes
                   if (authService.hasPermission(Permission.viewClients))
-                    _QuickActionCard(
-                      icon: Icons.groups,
-                      color: Color(0xFFFFA000),
-                      title: 'Gestión de Clientes',
-                      description: 'Registrar clientes, consultar historial y programas de fidelización',
+              _QuickActionCard(
+                icon: Icons.groups,
+                color: Color(0xFFFFA000),
+                title: 'Gestión de Clientes',
+                description: 'Registrar clientes, consultar historial y programas de fidelización',
                       onTap: _gestionarClientes,
-                    ),
+              ),
                   // Ver Reportes - Solo si tiene permisos de reportes
                   if (authService.hasPermission(Permission.viewReports))
-                    _QuickActionCard(
-                      icon: Icons.bar_chart,
-                      color: Color(0xFF00BFA5),
-                      title: 'Ver Reportes',
-                      description: 'Consultar reportes de ventas, estadísticas y análisis del negocio',
+              _QuickActionCard(
+                icon: Icons.bar_chart,
+                color: Color(0xFF00BFA5),
+                title: 'Ver Reportes',
+                description: 'Consultar reportes de ventas, estadísticas y análisis del negocio',
                       onTap: _verReportes,
-                    ),
+              ),
                   // Configuración - Solo si tiene permisos de configuración
                   if (authService.hasPermission(Permission.accessSettings))
-                    _QuickActionCard(
-                      icon: Icons.settings,
-                      color: Color(0xFF616161),
-                      title: 'Configuración',
-                      description: 'Ajustar parámetros del sistema, impuestos y configuraciones generales',
+              _QuickActionCard(
+                icon: Icons.settings,
+                color: Color(0xFF616161),
+                title: 'Configuración',
+                description: 'Ajustar parámetros del sistema, impuestos y configuraciones generales',
                       onTap: _configuracion,
-                    ),
+              ),
                   // Gestión de Usuarios - Solo si tiene permisos de usuarios
                   if (authService.hasPermission(Permission.viewUsers))
-                    _QuickActionCard(
-                      icon: Icons.person,
-                      color: Color(0xFFD32F2F),
-                      title: 'Gestión de Usuarios',
-                      description: 'Administrar usuarios del sistema, permisos y roles de acceso',
+              _QuickActionCard(
+                icon: Icons.person,
+                color: Color(0xFFD32F2F),
+                title: 'Gestión de Usuarios',
+                description: 'Administrar usuarios del sistema, permisos y roles de acceso',
                       onTap: _gestionarUsuarios,
                     ),
-                ],
-              ),
+            ],
+          ),
             );
           },
         ),

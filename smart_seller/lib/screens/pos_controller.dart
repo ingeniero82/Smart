@@ -1,8 +1,9 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import '../models/sale.dart';
-import '../services/database_service.dart';
+import '../services/sqlite_database_service.dart';
 import '../services/auth_service.dart';
+import 'package:intl/intl.dart';
 
 class CartItem {
   final String name;
@@ -24,16 +25,37 @@ class PosController extends GetxController {
   var cartItems = <CartItem>[].obs;
   
   // Agregar producto al carrito
-  void addToCart(String name, double price, String unit) {
+  void addToCart(String name, double price, String unit, {int? availableStock}) {
     // Buscar si el producto ya existe en el carrito
     final existingIndex = cartItems.indexWhere((item) => item.name == name);
     
     if (existingIndex >= 0) {
-      // Si existe, aumentar la cantidad
+      // Si existe, verificar stock antes de aumentar
+      final currentQuantity = cartItems[existingIndex].quantity;
+      if (availableStock != null && currentQuantity >= availableStock) {
+        Get.snackbar(
+          'Stock insuficiente',
+          'No hay más unidades disponibles de $name',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+        return;
+      }
       cartItems[existingIndex].quantity++;
       cartItems.refresh(); // Notificar cambios
     } else {
-      // Si no existe, agregarlo
+      // Si no existe, verificar stock antes de agregar
+      if (availableStock != null && availableStock <= 0) {
+        Get.snackbar(
+          'Sin stock',
+          'El producto $name no tiene unidades disponibles',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return;
+      }
       cartItems.add(CartItem(
         name: name,
         price: price,
@@ -85,6 +107,7 @@ class PosController extends GetxController {
   
   // Procesar pago
   void processPayment() async {
+    final NumberFormat copFormat = NumberFormat.currency(locale: 'es_CO', symbol: '\$ ', decimalDigits: 0, customPattern: '\u00A4#,##0');
     if (cartItems.isEmpty) {
       Get.snackbar(
         'Carrito vacío',
@@ -93,64 +116,170 @@ class PosController extends GetxController {
       );
       return;
     }
+    
+    // Mostrar opciones de pago
     Get.dialog(
       Dialog(
         child: Container(
-          width: 400,
-          padding: const EdgeInsets.all(32),
+          width: 450,
+          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Text(
-                'Procesar Pago',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                'Método de Pago',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Total a pagar: ${copFormat.format(total)}',
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF4CAF50)),
               ),
               const SizedBox(height: 24),
+              
+              // Opciones de pago
+              Row(
+                children: [
+                  Expanded(
+                    child: _PaymentOption(
+                      icon: Icons.money,
+                      title: 'Efectivo',
+                      subtitle: 'Pago en efectivo',
+                      onTap: () => _processPaymentWithMethod('Efectivo'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _PaymentOption(
+                      icon: Icons.credit_card,
+                      title: 'Tarjeta',
+                      subtitle: 'Débito/Crédito',
+                      onTap: () => _processPaymentWithMethod('Tarjeta'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _PaymentOption(
+                      icon: Icons.phone_android,
+                      title: 'Transferencia',
+                      subtitle: 'PSE/Bancolombia',
+                      onTap: () => _processPaymentWithMethod('Transferencia'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _PaymentOption(
+                      icon: Icons.qr_code,
+                      title: 'QR',
+                      subtitle: 'Nequi/Daviplata',
+                      onTap: () => _processPaymentWithMethod('QR'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              TextButton(
+                onPressed: () => Get.back(),
+                child: const Text('Cancelar', style: TextStyle(fontSize: 16)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  void _processPaymentWithMethod(String method) async {
+    final NumberFormat copFormat = NumberFormat.currency(locale: 'es_CO', symbol: '\$ ', decimalDigits: 0, customPattern: '\u00A4#,##0');
+    Get.back(); // Cierra el diálogo de métodos de pago
+    
+    // Mostrar confirmación
+    Get.dialog(
+      Dialog(
+        child: Container(
+          width: 400,
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                method == 'Efectivo' ? Icons.money :
+                method == 'Tarjeta' ? Icons.credit_card :
+                method == 'Transferencia' ? Icons.phone_android :
+                Icons.qr_code,
+                size: 48,
+                color: const Color(0xFF4CAF50),
+              ),
+              const SizedBox(height: 16),
               Text(
-                'Total a pagar:',
-                style: TextStyle(fontSize: 20, color: Colors.grey[700]),
+                'Confirmar Pago',
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
-                '\$${total.toStringAsFixed(2)}',
-                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xFF4CAF50)),
+                'Método: $method',
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 16),
+              Text(
+                copFormat.format(total),
+                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF4CAF50)),
+              ),
+              const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   TextButton(
                     onPressed: () => Get.back(),
-                    child: const Text('Cancelar', style: TextStyle(fontSize: 18)),
+                    child: const Text('Cancelar'),
                   ),
                   ElevatedButton(
                     onPressed: () async {
-                      Get.back(); // Cierra el diálogo primero
-                      // Espera un breve momento para asegurar el cierre visual
+                      Get.back();
                       await Future.delayed(const Duration(milliseconds: 200));
-                      // Guardar la venta en la base de datos
-                      final sale = Sale()
-                        ..date = DateTime.now()
-                        ..total = total
-                        ..user = AuthService.to.currentUser?.username ?? 'usuario'
-                        ..items = cartItems.map((item) => SaleItem()
-                          ..name = item.name
-                          ..price = item.price
-                          ..quantity = item.quantity
-                          ..unit = item.unit
-                        ).toList();
-                      await DatabaseService.saveSale(sale);
-                      clearCart();
-                      Get.snackbar(
-                        'Pago procesado',
-                        'Venta completada exitosamente',
-                        snackPosition: SnackPosition.BOTTOM,
-                      );
+                      
+                      try {
+                        // Guardar la venta con método de pago
+                        final sale = Sale()
+                          ..date = DateTime.now()
+                          ..total = total
+                          ..user = AuthService.to.currentUser?.username ?? 'usuario'
+                          ..paymentMethod = method
+                          ..items = cartItems.map((item) => SaleItem()
+                            ..name = item.name
+                            ..price = item.price
+                            ..quantity = item.quantity
+                            ..unit = item.unit
+                          ).toList();
+                        
+                        await SQLiteDatabaseService.saveSale(sale);
+                        clearCart();
+                        
+                        Get.snackbar(
+                          'Pago exitoso',
+                          'Venta completada con $method',
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: const Color(0xFF4CAF50),
+                          colorText: Colors.white,
+                        );
+                      } catch (e) {
+                        Get.snackbar(
+                          'Error',
+                          'No se pudo procesar la venta: $e',
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: Colors.red,
+                          colorText: Colors.white,
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                      textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      backgroundColor: const Color(0xFF4CAF50),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     ),
                     child: const Text('Confirmar'),
                   ),
@@ -181,4 +310,57 @@ class PosController extends GetxController {
       snackPosition: SnackPosition.BOTTOM,
     );
   }
-} 
+}
+
+// Widget para opciones de pago
+class _PaymentOption extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _PaymentOption({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, size: 32, color: const Color(0xFF7C4DFF)),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

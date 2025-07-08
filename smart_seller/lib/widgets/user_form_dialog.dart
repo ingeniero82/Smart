@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/user.dart';
-import '../services/database_service.dart';
+import '../services/sqlite_database_service.dart';
 
 class UserFormDialog extends StatefulWidget {
   const UserFormDialog({super.key});
@@ -43,7 +43,7 @@ class _UserFormDialogState extends State<UserFormDialog> {
       final username = _usernameController.text.trim();
       print('Verificando si existe el usuario: $username');
       // Verificar si el usuario ya existe
-      final userExists = await DatabaseService.userExists(username);
+      final userExists = await SQLiteDatabaseService.userExists(username);
       print('¿Usuario existe?: $userExists');
       if (userExists) {
         Get.snackbar(
@@ -69,9 +69,7 @@ class _UserFormDialogState extends State<UserFormDialog> {
 
       print('Guardando usuario en la base de datos...');
       // Guardar en la base de datos
-      await DatabaseService.isar.writeTxn(() async {
-        await DatabaseService.isar.users.put(newUser);
-      });
+      await SQLiteDatabaseService.createUser(newUser);
       print('Usuario guardado correctamente');
 
       Get.snackbar(

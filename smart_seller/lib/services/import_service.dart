@@ -3,7 +3,7 @@ import 'package:excel/excel.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
 import '../models/product.dart';
-import 'database_service.dart';
+import 'sqlite_database_service.dart';
 import 'package:csv/csv.dart';
 import 'dart:convert';
 
@@ -212,16 +212,26 @@ class ImportService {
   
   static Future<void> saveImportedProducts(List<Product> products) async {
     try {
-      await DatabaseService.isar.writeTxn(() async {
-        for (Product product in products) {
-          // Buscar si ya existe un producto con el mismo código usando getByCode
-          final existing = await DatabaseService.isar.products.getByCode(product.code);
-          if (existing != null) {
-            product.id = existing.id; // Actualizar el existente
+      for (Product product in products) {
+        // Verificar si ya existe un producto con el mismo código
+        final exists = await SQLiteDatabaseService.existsProductCode(product.code);
+        if (exists) {
+          // Si existe, obtener todos los productos y encontrar el que coincida
+          final allProducts = await SQLiteDatabaseService.getAllProducts();
+          final existing = allProducts.firstWhere(
+            (p) => p.code == product.code,
+            orElse: () => product,
+          );
+          if (existing.id != null) {
+            // Actualizar el producto existente
+            product.id = existing.id;
+            await SQLiteDatabaseService.updateProduct(product);
           }
-          await DatabaseService.isar.products.put(product);
+        } else {
+          // Crear nuevo producto
+          await SQLiteDatabaseService.createProduct(product);
         }
-      });
+      }
     } catch (e) {
       throw Exception('Error al guardar productos: $e');
     }

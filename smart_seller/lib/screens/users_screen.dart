@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../services/database_service.dart';
+import '../services/sqlite_database_service.dart';
 import '../services/auth_service.dart';
 import '../models/user.dart';
 import '../models/permissions.dart';
@@ -76,7 +76,7 @@ class _UsersScreenState extends State<UsersScreen> {
 
   Future<void> _loadUsers() async {
     try {
-      final usersList = await DatabaseService.getAllUsers();
+      final usersList = await SQLiteDatabaseService.getAllUsers();
       setState(() {
         users = usersList;
         filteredUsers = usersList;
@@ -187,7 +187,16 @@ class _UsersScreenState extends State<UsersScreen> {
     if (confirm != true) return;
 
     try {
-      final success = await DatabaseService.toggleUserStatus(user.id);
+      if (user.id == null) {
+        Get.snackbar(
+          'Error',
+          'ID de usuario no válido',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return;
+      }
+      final success = await SQLiteDatabaseService.toggleUserStatus(user.id!);
       
       if (success) {
         Get.snackbar(
@@ -298,7 +307,16 @@ class _UsersScreenState extends State<UsersScreen> {
     if (confirm != true) return;
 
     try {
-      final success = await DatabaseService.deleteUser(user.id);
+      if (user.id == null) {
+        Get.snackbar(
+          'Error',
+          'ID de usuario no válido',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return;
+      }
+      final success = await SQLiteDatabaseService.deleteUser(user.id!);
       
       if (success) {
         Get.snackbar(
@@ -580,8 +598,8 @@ class _UsersScreenState extends State<UsersScreen> {
                             users.isEmpty 
                               ? 'No hay usuarios registrados'
                               : 'No se encontraron usuarios con los filtros aplicados',
-                            style: TextStyle(
-                              fontSize: 18,
+                        style: TextStyle(
+                          fontSize: 18,
                               color: Colors.grey[600],
                             ),
                             textAlign: TextAlign.center,
@@ -595,7 +613,7 @@ class _UsersScreenState extends State<UsersScreen> {
                                 color: Colors.grey[500],
                               ),
                               textAlign: TextAlign.center,
-                            ),
+                        ),
                           ],
                         ],
                       ),
@@ -621,8 +639,8 @@ class _UsersScreenState extends State<UsersScreen> {
         ),
       ],
     ),
-  );
-}
+    );
+  }
 }
 
 class _UserCard extends StatelessWidget {

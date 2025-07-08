@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/user.dart';
 import '../models/permissions.dart';
-import '../services/database_service.dart';
+import '../services/sqlite_database_service.dart';
 import '../services/permissions_service.dart';
 
 class AuthService extends GetxService {
@@ -19,7 +19,7 @@ class AuthService extends GetxService {
   // Método para hacer login
   Future<bool> login(String username, String password) async {
     try {
-      final user = await DatabaseService.findUser(username, password);
+      final user = await SQLiteDatabaseService.findUser(username, password);
       
       if (user != null) {
         _currentUser.value = user;

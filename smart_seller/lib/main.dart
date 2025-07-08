@@ -7,18 +7,18 @@ import 'screens/inventory_movements_screen.dart';
 import 'screens/sales_history_screen.dart';
 import 'screens/products_screen.dart';
 import 'screens/users_screen.dart';
-import 'services/database_service.dart';
+import 'screens/debug_screen.dart';
+import 'services/sqlite_database_service.dart';
+import 'middleware/auth_middleware.dart';
 import 'services/auth_service.dart';
 import 'services/permissions_service.dart';
-import 'middleware/auth_middleware.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Inicializar la base de datos
-  await DatabaseService.initialize();
-  
-  // Inicializar servicios
+  // Inicializar la base de datos SQLite
+  await SQLiteDatabaseService.initialize();
+  // Registrar AuthService en GetX
   Get.put(AuthService());
   Get.put(PermissionsService());
   
@@ -72,6 +72,11 @@ class MyApp extends StatelessWidget {
         GetPage(
           name: '/usuarios', 
           page: () => const UsersScreen(),
+          middlewares: [AuthMiddleware()], // Solo usuarios autenticados
+        ),
+        GetPage(
+          name: '/debug', 
+          page: () => const DebugScreen(),
           middlewares: [AuthMiddleware()], // Solo usuarios autenticados
         ),
       ],

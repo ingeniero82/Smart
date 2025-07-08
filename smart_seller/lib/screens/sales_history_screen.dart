@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../services/database_service.dart';
+import '../services/sqlite_database_service.dart';
 import '../models/sale.dart';
 
 class SalesHistoryScreen extends StatefulWidget {
@@ -23,8 +23,19 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
 
   Future<void> fetchSales() async {
     setState(() => isLoading = true);
-    sales = await DatabaseService.getSales(date: selectedDate);
-    setState(() => isLoading = false);
+    try {
+      sales = await SQLiteDatabaseService.getSales(date: selectedDate);
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'No se pudieron cargar las ventas: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red[100],
+        colorText: Colors.red[900],
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
   }
 
   Future<void> pickDate() async {

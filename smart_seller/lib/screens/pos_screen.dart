@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'pos_controller.dart';
 import '../models/product.dart';
-import '../services/database_service.dart';
+import '../services/sqlite_database_service.dart';
+import 'package:intl/intl.dart';
 
 class PosScreen extends StatefulWidget {
   const PosScreen({super.key});
@@ -16,6 +17,7 @@ class _PosScreenState extends State<PosScreen> {
   List<Product> _products = [];
   List<Product> _filteredProducts = [];
   bool _isLoading = true;
+  ProductCategory? _selectedCategory;
 
   @override
   void initState() {
@@ -25,7 +27,7 @@ class _PosScreenState extends State<PosScreen> {
 
   Future<void> _loadProducts() async {
     setState(() => _isLoading = true);
-    final products = await DatabaseService.getAllProducts();
+    final products = await SQLiteDatabaseService.getAllProducts();
     setState(() {
       _products = products;
       _filteredProducts = products;
@@ -37,16 +39,30 @@ class _PosScreenState extends State<PosScreen> {
     setState(() {
       final query = _searchController.text.toLowerCase();
       _filteredProducts = _products.where((product) {
-        return product.name.toLowerCase().contains(query) ||
-               product.code.toLowerCase().contains(query) ||
-               product.shortCode.toLowerCase().contains(query);
+        // Filtro por texto
+        final matchesText = product.name.toLowerCase().contains(query) ||
+                           product.code.toLowerCase().contains(query) ||
+                           product.shortCode.toLowerCase().contains(query);
+        
+        // Filtro por categoría
+        final matchesCategory = _selectedCategory == null || product.category == _selectedCategory;
+        
+        return matchesText && matchesCategory;
       }).toList();
     });
+  }
+  
+  void _selectCategory(ProductCategory? category) {
+    setState(() {
+      _selectedCategory = category;
+    });
+    _filterProducts();
   }
 
   @override
   Widget build(BuildContext context) {
     final posController = Get.put(PosController());
+    final NumberFormat copFormat = NumberFormat.currency(locale: 'es_CO', symbol: '\$ ', decimalDigits: 0, customPattern: '\u00A4#,##0');
     
     return Scaffold(
       body: SafeArea(
@@ -159,39 +175,44 @@ class _PosScreenState extends State<PosScreen> {
                               _CategoryButton(
                                 icon: Icons.grid_view,
                                 label: 'Todos los productos',
-                                selected: true,
+                                selected: _selectedCategory == null,
                                 color: Color(0xFF7C4DFF),
-                                onTap: () {},
+                                onTap: () => _selectCategory(null),
                               ),
                               _CategoryButton(
                                 icon: Icons.apple,
                                 label: 'Frutas y Verduras',
+                                selected: _selectedCategory == ProductCategory.frutasVerduras,
                                 color: Color(0xFFE53935),
-                                onTap: () {},
+                                onTap: () => _selectCategory(ProductCategory.frutasVerduras),
                               ),
                               _CategoryButton(
                                 icon: Icons.local_drink,
                                 label: 'Lácteos',
+                                selected: _selectedCategory == ProductCategory.lacteos,
                                 color: Color(0xFF29B6F6),
-                                onTap: () {},
+                                onTap: () => _selectCategory(ProductCategory.lacteos),
                               ),
                               _CategoryButton(
                                 icon: Icons.bakery_dining,
                                 label: 'Panadería',
+                                selected: _selectedCategory == ProductCategory.panaderia,
                                 color: Color(0xFFFFB300),
-                                onTap: () {},
+                                onTap: () => _selectCategory(ProductCategory.panaderia),
                               ),
                               _CategoryButton(
                                 icon: Icons.set_meal,
                                 label: 'Carnes',
+                                selected: _selectedCategory == ProductCategory.carnes,
                                 color: Color(0xFF8D6E63),
-                                onTap: () {},
+                                onTap: () => _selectCategory(ProductCategory.carnes),
                               ),
                               _CategoryButton(
                                 icon: Icons.local_bar,
                                 label: 'Bebidas',
+                                selected: _selectedCategory == ProductCategory.bebidas,
                                 color: Color(0xFF43A047),
-                                onTap: () {},
+                                onTap: () => _selectCategory(ProductCategory.bebidas),
                               ),
                             ],
                           ),
@@ -260,17 +281,19 @@ class _PosScreenState extends State<PosScreen> {
                                           final product = _filteredProducts[index];
                                           return _ProductCard(
                                             name: product.name,
-                                            price: product.price.toStringAsFixed(2),
+                                            price: copFormat.format(product.price),
                                             unit: product.unit,
                                             shortCode: product.shortCode,
                                             color: Colors.blue,
                                             icon: Icons.shopping_bag,
+                                            stock: product.stock,
                                             onTap: () {
                                               final posController = Get.find<PosController>();
                                               posController.addToCart(
                                                 product.name,
                                                 product.price,
                                                 product.unit,
+                                                availableStock: product.stock,
                                               );
                                             },
                                           );
@@ -323,7 +346,7 @@ class _PosScreenState extends State<PosScreen> {
                               final item = posController.cartItems[index];
                               return _CartItem(
                                 name: item.name,
-                                price: item.price,
+                                price: copFormat.format(item.price),
                                 quantity: item.quantity,
                                 onRemove: () {
                                   posController.removeFromCart(index);
@@ -347,10 +370,10 @@ class _PosScreenState extends State<PosScreen> {
                           ),
                           child: Column(
                             children: [
-                              _TotalRow('Subtotal:', '\$${posController.subtotal.toStringAsFixed(2)}'),
-                              _TotalRow('Impuestos (19%):', '\$${posController.taxes.toStringAsFixed(2)}'),
+                              _TotalRow('Subtotal:', copFormat.format(posController.subtotal)),
+                              _TotalRow('Impuestos (19%):', copFormat.format(posController.taxes)),
                               const Divider(thickness: 1),
-                              _TotalRow('Total:', '\$${posController.total.toStringAsFixed(2)}', isTotal: true),
+                              _TotalRow('Total:', copFormat.format(posController.total), isTotal: true),
                             ],
                           ),
                         )),
@@ -447,6 +470,7 @@ class _ProductCard extends StatelessWidget {
   final Color color;
   final IconData icon;
   final VoidCallback onTap;
+  final int stock;
 
   const _ProductCard({
     required this.name,
@@ -456,6 +480,7 @@ class _ProductCard extends StatelessWidget {
     required this.color,
     required this.icon,
     required this.onTap,
+    required this.stock,
     Key? key,
   }) : super(key: key);
 
@@ -485,10 +510,26 @@ class _ProductCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '\$24$price',
+                price,
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.green),
               ),
               Text('por $unit', style: const TextStyle(fontSize: 12)),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: stock > 0 ? Colors.green : Colors.red,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  stock > 0 ? 'Stock: $stock' : 'Sin stock',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -550,7 +591,7 @@ class _CategoryButton extends StatelessWidget {
 // Widget para items del carrito
 class _CartItem extends StatelessWidget {
   final String name;
-  final double price;
+  final String price;
   final int quantity;
   final VoidCallback onRemove;
   final Function(int) onQuantityChanged;
@@ -603,7 +644,7 @@ class _CartItem extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '\$${price.toStringAsFixed(2)}',
+                price,
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,

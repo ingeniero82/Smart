@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/user.dart';
-import '../services/database_service.dart';
+import '../services/sqlite_database_service.dart';
 
 class UserEditDialog extends StatefulWidget {
   final User user;
@@ -58,7 +58,7 @@ class _UserEditDialogState extends State<UserEditDialog> {
       
       // Verificar si el usuario cambió y si ya existe
       if (username != widget.user.username) {
-        final userExists = await DatabaseService.userExists(username);
+        final userExists = await SQLiteDatabaseService.userExists(username);
         if (userExists) {
           Get.snackbar(
             'Error',
@@ -84,9 +84,7 @@ class _UserEditDialogState extends State<UserEditDialog> {
       }
 
       // Guardar en la base de datos
-      await DatabaseService.isar.writeTxn(() async {
-        await DatabaseService.isar.users.put(widget.user);
-      });
+      await SQLiteDatabaseService.updateUser(widget.user);
 
       Get.snackbar(
         'Éxito',

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/product.dart';
-import '../services/database_service.dart';
+import '../services/sqlite_database_service.dart';
 import '../services/import_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
@@ -22,7 +22,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
   ProductCategory? _selectedCategory;
   bool _isLoading = true;
 
-  final NumberFormat copFormat = NumberFormat.currency(locale: 'es_CO', symbol: '\$', decimalDigits: 2);
+  final NumberFormat copFormat = NumberFormat.currency(locale: 'es_CO', symbol: '\$ ', decimalDigits: 0, customPattern: '\u00A4#,##0');
 
   @override
   void initState() {
@@ -36,7 +36,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
     });
 
     try {
-      final products = await DatabaseService.getAllProducts();
+      final products = await SQLiteDatabaseService.getAllProducts();
       setState(() {
         _products = products;
         _filteredProducts = products;
@@ -106,7 +106,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
     if (confirmed == true) {
       try {
-        await DatabaseService.deleteProduct(product.id);
+        await SQLiteDatabaseService.deleteProduct(product.id!);
         Get.snackbar(
           'Éxito',
           'Producto eliminado correctamente',
@@ -154,7 +154,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
       }
 
       // Detectar productos repetidos
-      final existingProducts = await DatabaseService.getAllProducts();
+      final existingProducts = await SQLiteDatabaseService.getAllProducts();
       final existingCodes = existingProducts.map((p) => p.code).toSet();
       final repeated = products.where((p) => existingCodes.contains(p.code)).toList();
       final newProducts = products.where((p) => !existingCodes.contains(p.code)).toList();
@@ -235,7 +235,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
   Future<void> _exportProductsToCsv() async {
     try {
-      final products = await DatabaseService.getAllProducts();
+      final products = await SQLiteDatabaseService.getAllProducts();
       String? outputPath = await FilePicker.platform.saveFile(
         dialogTitle: 'Guardar productos como...',
         fileName: 'productos_exportados.csv',
@@ -403,10 +403,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
               ],
             ),
           ),
-
-          // Filtros y búsqueda
+          // Filtros
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             color: Colors.white,
             child: Row(
               children: [
@@ -417,11 +416,10 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     controller: _searchController,
                     onChanged: (_) => _filterProducts(),
                     decoration: InputDecoration(
-                      hintText: 'Buscar por nombre o código...',
+                      hintText: 'Buscar productos...',
                       prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
                       filled: true,
                       fillColor: const Color(0xFFF6F8FA),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: BorderSide.none,
@@ -430,19 +428,28 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                
                 // Filtro por categoría
                 Expanded(
+                  flex: 1,
                   child: DropdownButtonFormField<ProductCategory?>(
                     value: _selectedCategory,
-                    onChanged: (value) {
+                    items: [
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('Todas las categorías'),
+                      ),
+                      ...ProductCategory.values.map((category) => DropdownMenuItem(
+                        value: category,
+                        child: Text(_getCategoryName(category)),
+                      )),
+                    ],
+                    onChanged: (category) {
                       setState(() {
-                        _selectedCategory = value;
+                        _selectedCategory = category;
                       });
                       _filterProducts();
                     },
                     decoration: InputDecoration(
-                      labelText: 'Categoría',
                       filled: true,
                       fillColor: const Color(0xFFF6F8FA),
                       border: OutlineInputBorder(
@@ -450,154 +457,29 @@ class _ProductsScreenState extends State<ProductsScreen> {
                         borderSide: BorderSide.none,
                       ),
                     ),
-                    items: [
-                      const DropdownMenuItem<ProductCategory?>(
-                        value: null,
-                        child: Text('Todas las categorías'),
-                      ),
-                      ...ProductCategory.values.map((category) => 
-                        DropdownMenuItem<ProductCategory?>(
-                          value: category,
-                          child: Text(_getCategoryName(category)),
-                        ),
-                      ),
-                    ],
                   ),
-                ),
-                const SizedBox(width: 16),
-                
-                // Botón refrescar
-                IconButton(
-                  onPressed: _loadProducts,
-                  icon: Icon(Icons.refresh, color: Colors.blue[700]),
-                  tooltip: 'Refrescar',
                 ),
               ],
             ),
           ),
-
-          // Tabla de productos
+          // Lista de productos
           Expanded(
-            child: Container(
-              margin: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _filteredProducts.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'No se encontraron productos',
-                            style: TextStyle(fontSize: 18, color: Colors.grey),
-                          ),
-                        )
-                      : SingleChildScrollView(
-                          child: DataTable(
-                            headingRowColor: MaterialStateProperty.all(
-                              const Color(0xFFF6F8FA),
-                            ),
-                            columns: const [
-                              DataColumn(label: Text('Código', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Código corto', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Nombre', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Categoría', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Precio', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Costo', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Stock', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Estado', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Acciones', style: TextStyle(fontWeight: FontWeight.bold))),
-                            ],
-                            rows: _filteredProducts.map((product) {
-                              return DataRow(
-                                cells: [
-                                  DataCell(Text(product.code)),
-                                  DataCell(Text(product.shortCode)),
-                                  DataCell(
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          product.name,
-                                          style: const TextStyle(fontWeight: FontWeight.w500),
-                                        ),
-                                        Text(
-                                          product.unit,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[600],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  DataCell(Text(_getCategoryName(product.category))),
-                                  DataCell(Text(copFormat.format(product.price))),
-                                  DataCell(Text(copFormat.format(product.cost))),
-                                  DataCell(
-                                    Row(
-                                      children: [
-                                        Text(product.stock.toString()),
-                                        if (product.isLowStock) ...[
-                                          const SizedBox(width: 8),
-                                          Icon(
-                                            Icons.warning,
-                                            color: Colors.orange,
-                                            size: 16,
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                  DataCell(
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: product.isActive ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        product.isActive ? 'Activo' : 'Inactivo',
-                                        style: TextStyle(
-                                          color: product.isActive ? Colors.green[700] : Colors.red[700],
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  DataCell(
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                          onPressed: () => _showEditProductDialog(product),
-                                          icon: Icon(Icons.edit, color: Colors.blue[600], size: 20),
-                                          tooltip: 'Editar',
-                                        ),
-                                        IconButton(
-                                          onPressed: () => _deleteProduct(product),
-                                          icon: Icon(Icons.delete, color: Colors.red[600], size: 20),
-                                          tooltip: 'Eliminar',
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              );
-                            }).toList(),
-                          ),
-                        ),
-            ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _filteredProducts.isEmpty
+                    ? const Center(child: Text('No hay productos para mostrar.'))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _filteredProducts.length,
+                        itemBuilder: (context, index) {
+                          final product = _filteredProducts[index];
+                          return _ProductCard(
+                            product: product,
+                            onEdit: () => _showEditProductDialog(product),
+                            onDelete: () => _deleteProduct(product),
+                          );
+                        },
+                      ),
           ),
         ],
       ),
@@ -685,7 +567,7 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
       final excludeId = widget.product?.id;
 
       // Validar código de barras único
-      final exists = await DatabaseService.existsProductCode(code, excludeId: excludeId);
+      final exists = await SQLiteDatabaseService.existsProductCode(code, excludeId: excludeId);
       if (exists) {
         setState(() {
           _isLoading = false;
@@ -701,7 +583,7 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
       }
 
       // Validar código corto único
-      final existsShort = await DatabaseService.getAllProducts();
+      final existsShort = await SQLiteDatabaseService.getAllProducts();
       if (existsShort.any((p) => p.shortCode == shortCode && p.id != excludeId)) {
         setState(() {
           _isLoading = false;
@@ -733,7 +615,7 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
       if (widget.product == null) {
         // Nuevo producto
         product.createdAt = DateTime.now();
-        await DatabaseService.createProduct(product);
+        await SQLiteDatabaseService.createProduct(product);
         setState(() {
           _isLoading = false;
         });
@@ -779,7 +661,7 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
         // Editar producto existente
         product.id = widget.product!.id;
         product.createdAt = widget.product!.createdAt;
-        await DatabaseService.updateProduct(product);
+        await SQLiteDatabaseService.updateProduct(product);
         setState(() {
           _isLoading = false;
         });
@@ -802,6 +684,7 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
         'Error al guardar producto: $e',
         backgroundColor: Colors.red,
         colorText: Colors.white,
+        duration: Duration(seconds: 3),
       );
     }
   }
@@ -820,27 +703,23 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
             children: [
               Text(
                 widget.product == null ? 'Nuevo Producto' : 'Editar Producto',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF22315B),
-                ),
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 24),
               
-              // Primera fila: Código de barras y Código corto
+              // Primera fila
               Row(
                 children: [
                   Expanded(
                     child: TextFormField(
                       controller: _codeController,
                       decoration: const InputDecoration(
-                        labelText: 'Código de barras',
+                        labelText: 'Código de Barras *',
                         border: OutlineInputBorder(),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'El código es requerido';
+                          return 'El código es obligatorio';
                         }
                         return null;
                       },
@@ -851,15 +730,12 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
                     child: TextFormField(
                       controller: _shortCodeController,
                       decoration: const InputDecoration(
-                        labelText: 'Código corto',
+                        labelText: 'Código Corto *',
                         border: OutlineInputBorder(),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'El código corto es requerido';
-                        }
-                        if (value.trim().length < 2) {
-                          return 'Debe tener al menos 2 caracteres';
+                          return 'El código corto es obligatorio';
                         }
                         return null;
                       },
@@ -868,54 +744,60 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
                 ],
               ),
               const SizedBox(height: 16),
-              // Segunda fila: Nombre del producto
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre del producto',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'El nombre es requerido';
-                  }
-                  return null;
-                },
+              
+              // Segunda fila
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: TextFormField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Nombre del Producto *',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'El nombre es obligatorio';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: DropdownButtonFormField<ProductCategory>(
+                      value: _selectedCategory,
+                      items: ProductCategory.values.map((category) => DropdownMenuItem(
+                        value: category,
+                        child: Text(_getCategoryName(category)),
+                      )).toList(),
+                      onChanged: (category) => setState(() => _selectedCategory = category!),
+                      decoration: const InputDecoration(
+                        labelText: 'Categoría',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               
-              // Descripción
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Descripción',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 2,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'La descripción es requerida';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              
-              // Segunda fila: Precio, Costo, Unidad
+              // Tercera fila
               Row(
                 children: [
                   Expanded(
                     child: TextFormField(
                       controller: _priceController,
                       decoration: const InputDecoration(
-                        labelText: 'Precio de venta',
-                        prefixText: '\$',
+                        labelText: 'Precio de Venta *',
                         border: OutlineInputBorder(),
+                        prefixText: '\$',
                       ),
                       keyboardType: TextInputType.number,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'El precio es requerido';
+                          return 'El precio es obligatorio';
                         }
                         if (double.tryParse(value) == null) {
                           return 'Precio inválido';
@@ -929,14 +811,14 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
                     child: TextFormField(
                       controller: _costController,
                       decoration: const InputDecoration(
-                        labelText: 'Costo',
-                        prefixText: '\$',
+                        labelText: 'Precio de Costo *',
                         border: OutlineInputBorder(),
+                        prefixText: '\$',
                       ),
                       keyboardType: TextInputType.number,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'El costo es requerido';
+                          return 'El costo es obligatorio';
                         }
                         if (double.tryParse(value) == null) {
                           return 'Costo inválido';
@@ -950,12 +832,12 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
                     child: TextFormField(
                       controller: _unitController,
                       decoration: const InputDecoration(
-                        labelText: 'Unidad',
+                        labelText: 'Unidad *',
                         border: OutlineInputBorder(),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'La unidad es requerida';
+                          return 'La unidad es obligatoria';
                         }
                         return null;
                       },
@@ -965,20 +847,20 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
               ),
               const SizedBox(height: 16),
               
-              // Tercera fila: Stock y Stock mínimo
+              // Cuarta fila
               Row(
                 children: [
                   Expanded(
                     child: TextFormField(
                       controller: _stockController,
                       decoration: const InputDecoration(
-                        labelText: 'Stock actual',
+                        labelText: 'Stock Actual',
                         border: OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.number,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'El stock es requerido';
+                          return 'El stock es obligatorio';
                         }
                         if (int.tryParse(value) == null) {
                           return 'Stock inválido';
@@ -992,13 +874,13 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
                     child: TextFormField(
                       controller: _minStockController,
                       decoration: const InputDecoration(
-                        labelText: 'Stock mínimo',
+                        labelText: 'Stock Mínimo',
                         border: OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.number,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'El stock mínimo es requerido';
+                          return 'El stock mínimo es obligatorio';
                         }
                         if (int.tryParse(value) == null) {
                           return 'Stock mínimo inválido';
@@ -1007,43 +889,27 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
                       },
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              // Fila aparte para Categoría
-              DropdownButtonFormField<ProductCategory>(
-                value: _selectedCategory,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedCategory = value!;
-                  });
-                },
-                decoration: const InputDecoration(
-                  labelText: 'Categoría',
-                  border: OutlineInputBorder(),
-                ),
-                items: ProductCategory.values.map((category) => 
-                  DropdownMenuItem<ProductCategory>(
-                    value: category,
-                    child: Text(_getCategoryName(category)),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: CheckboxListTile(
+                      title: const Text('Activo'),
+                      value: _isActive,
+                      onChanged: (value) => setState(() => _isActive = value!),
+                      controlAffinity: ListTileControlAffinity.leading,
+                    ),
                   ),
-                ).toList(),
+                ],
               ),
               const SizedBox(height: 16),
               
-              // Estado activo/inactivo
-              Row(
-                children: [
-                  Checkbox(
-                    value: _isActive,
-                    onChanged: (value) {
-                      setState(() {
-                        _isActive = value!;
-                      });
-                    },
-                  ),
-                  const Text('Producto activo'),
-                ],
+              // Descripción
+              TextFormField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Descripción',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
               ),
               const SizedBox(height: 24),
               
@@ -1055,26 +921,16 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
                     onPressed: () => Get.back(),
                     child: const Text('Cancelar'),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                   ElevatedButton(
                     onPressed: _isLoading ? null : _saveProduct,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[700],
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    ),
                     child: _isLoading
                         ? const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : Text(
-                            widget.product == null ? 'Crear' : 'Actualizar',
-                            style: const TextStyle(color: Colors.white),
-                          ),
+                        : Text(widget.product == null ? 'Crear' : 'Actualizar'),
                   ),
                 ],
               ),
@@ -1105,6 +961,120 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
         return 'Cuidado Personal';
       case ProductCategory.otros:
         return 'Otros';
+    }
+  }
+}
+
+// Widget para las tarjetas de productos
+class _ProductCard extends StatelessWidget {
+  final Product product;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _ProductCard({
+    required this.product,
+    required this.onEdit,
+    required this.onDelete,
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final copFormat = NumberFormat.currency(locale: 'es_CO', symbol: '\$ ', decimalDigits: 0, customPattern: '\u00A4#,##0');
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: _getCategoryColor(product.category),
+          child: Icon(
+            _getCategoryIcon(product.category),
+            color: Colors.white,
+          ),
+        ),
+        title: Text(
+          product.name,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Código:  ${product.code}'),
+            Text('Precio:  ${copFormat.format(product.price)}'),
+            Text('Stock:  ${product.stock} ${product.unit}'),
+            if (product.stock <= product.minStock)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  'Stock bajo',
+                  style: TextStyle(color: Colors.white, fontSize: 12),
+                ),
+              ),
+          ],
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.blue),
+              onPressed: onEdit,
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: onDelete,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _getCategoryColor(ProductCategory category) {
+    switch (category) {
+      case ProductCategory.frutasVerduras:
+        return Colors.red;
+      case ProductCategory.lacteos:
+        return Colors.blue;
+      case ProductCategory.panaderia:
+        return Colors.orange;
+      case ProductCategory.carnes:
+        return Colors.brown;
+      case ProductCategory.bebidas:
+        return Colors.green;
+      case ProductCategory.abarrotes:
+        return Colors.purple;
+      case ProductCategory.limpieza:
+        return Colors.teal;
+      case ProductCategory.cuidadoPersonal:
+        return Colors.pink;
+      case ProductCategory.otros:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getCategoryIcon(ProductCategory category) {
+    switch (category) {
+      case ProductCategory.frutasVerduras:
+        return Icons.apple;
+      case ProductCategory.lacteos:
+        return Icons.local_drink;
+      case ProductCategory.panaderia:
+        return Icons.bakery_dining;
+      case ProductCategory.carnes:
+        return Icons.set_meal;
+      case ProductCategory.bebidas:
+        return Icons.local_bar;
+      case ProductCategory.abarrotes:
+        return Icons.inventory;
+      case ProductCategory.limpieza:
+        return Icons.cleaning_services;
+      case ProductCategory.cuidadoPersonal:
+        return Icons.person;
+      case ProductCategory.otros:
+        return Icons.category;
     }
   }
 } 

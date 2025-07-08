@@ -1,23 +1,14 @@
-import 'package:isar/isar.dart';
+// Modelo de venta sin Isar
 
-part 'sale.g.dart';
-
-@collection
 class Sale {
-  Id id = Isar.autoIncrement;
-  
-  @Index()
+  int? id;
   late DateTime date;
-  
-  @Index()
   late double total;
-  
   late String user;
-  
+  String? paymentMethod;
   late List<SaleItem> items;
 }
 
-@embedded
 class SaleItem {
   late String name;
   late double price;
