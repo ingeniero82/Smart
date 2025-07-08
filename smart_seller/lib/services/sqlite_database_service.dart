@@ -6,6 +6,7 @@ import '../models/product.dart';
 import '../models/inventory_movement.dart';
 import '../models/sale.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'dart:convert'; // Added for jsonDecode
 
 class SQLiteDatabaseService {
   static Database? _database;
@@ -425,12 +426,12 @@ class SQLiteDatabaseService {
       'total': sale.total,
       'user': sale.user,
       'paymentMethod': sale.paymentMethod,
-      'items': sale.items.map((item) => {
+      'items': jsonEncode(sale.items.map((item) => {
         'name': item.name,
         'price': item.price,
         'quantity': item.quantity,
         'unit': item.unit,
-      }).toList().toString(), // Convertir a JSON string
+      }).toList()), // Guardar como JSON string
     });
 
     // Descontar stock de cada producto vendido
@@ -457,7 +458,7 @@ class SQLiteDatabaseService {
   }
   
   // Obtener historial de ventas
-  static Future<List<Sale>> getSales({DateTime? date}) async {
+  static Future<List<Sale>> getSales({DateTime? date, String? user}) async {
     String whereClause = '';
     List<dynamic> whereArgs = [];
     
@@ -466,6 +467,11 @@ class SQLiteDatabaseService {
       final end = start.add(const Duration(days: 1));
       whereClause = 'date >= ? AND date < ?';
       whereArgs = [start.toIso8601String(), end.toIso8601String()];
+    }
+    if (user != null && user.isNotEmpty) {
+      if (whereClause.isNotEmpty) whereClause += ' AND ';
+      whereClause += 'user = ?';
+      whereArgs.add(user);
     }
     
     final results = await _database!.query(
@@ -482,7 +488,24 @@ class SQLiteDatabaseService {
         ..total = saleData['total'] as double
         ..user = saleData['user'] as String
         ..paymentMethod = saleData['paymentMethod'] as String?
-        ..items = []; // TODO: Parsear items desde JSON string
+      ;
+      // Parsear items desde JSON string
+      try {
+        final itemsString = saleData['items'] as String?;
+        if (itemsString != null && itemsString.isNotEmpty) {
+          final List<dynamic> itemsList = itemsString.contains('[') ? jsonDecode(itemsString) : [];
+          sale.items = itemsList.map((item) => SaleItem()
+            ..name = item['name']
+            ..price = item['price']
+            ..quantity = item['quantity']
+            ..unit = item['unit']
+          ).toList();
+        } else {
+          sale.items = [];
+        }
+      } catch (_) {
+        sale.items = [];
+      }
       return sale;
     }).toList();
   }

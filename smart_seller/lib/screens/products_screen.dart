@@ -7,6 +7,9 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/widgets.dart';
+
+final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
 class ProductsScreen extends StatefulWidget {
   const ProductsScreen({super.key});
@@ -15,7 +18,7 @@ class ProductsScreen extends StatefulWidget {
   State<ProductsScreen> createState() => _ProductsScreenState();
 }
 
-class _ProductsScreenState extends State<ProductsScreen> {
+class _ProductsScreenState extends State<ProductsScreen> with RouteAware {
   final TextEditingController _searchController = TextEditingController();
   List<Product> _products = [];
   List<Product> _filteredProducts = [];
@@ -27,6 +30,24 @@ class _ProductsScreenState extends State<ProductsScreen> {
   @override
   void initState() {
     super.initState();
+    _loadProducts();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context) as PageRoute);
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // Se llama cuando se regresa a esta pantalla
     _loadProducts();
   }
 

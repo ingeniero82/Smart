@@ -12,6 +12,7 @@ import 'services/sqlite_database_service.dart';
 import 'middleware/auth_middleware.dart';
 import 'services/auth_service.dart';
 import 'services/permissions_service.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +38,15 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('es', 'CO'),
+        Locale('es'),
+      ],
       initialRoute: '/login',
       getPages: [
         GetPage(
